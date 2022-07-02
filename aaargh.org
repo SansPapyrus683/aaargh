@@ -1,0 +1,4 @@
+#+title: Aaargh
+
+* Basic goals
+** Take a bunch given input files, put them through a program, and compare them to some output files
