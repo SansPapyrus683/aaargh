@@ -3,7 +3,7 @@
 version = 3
 
 [[package]]
-name = "AAARGH"
+name = "aargh"
 version = "0.1.0"
 dependencies = [
  "structopt",
