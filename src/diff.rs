@@ -1,5 +1,10 @@
+use std::str::Lines;
 use colored::Colorize;
 use regex::Regex;
+
+fn print_type_of<T>(_: &T) {
+    println!("{}", std::any::type_name::<T>())
+}
 
 pub fn diff_lines<'a>(
     given: impl IntoIterator<Item = &'a str>,
@@ -10,8 +15,8 @@ pub fn diff_lines<'a>(
     let mut a_iter = actual.into_iter();
 
     loop {
-        let g_line = g_iter.next();
-        let a_line = a_iter.next();
+        let g_line: Option<&str> = g_iter.next();
+        let a_line: Option<&str> = a_iter.next();
         match (g_line, a_line) {
             (None, None) => break,
             (Some(_), None) => {
