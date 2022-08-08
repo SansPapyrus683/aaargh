@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 use strum::IntoEnumIterator;
@@ -26,8 +26,16 @@ pub fn file_ext(file: &str) -> Option<&str> {
         .and_then(OsStr::to_str)
 }
 
-pub fn file_lang(file: &str) -> Option<Lang> {
-    let ext = file_ext(file);
+pub fn path_ext(path: &PathBuf) -> Option<&str> {
+    path.extension().and_then(OsStr::to_str)
+}
+
+pub fn path_str(path: &PathBuf) -> String {
+    path.clone().into_os_string().into_string().unwrap()
+}
+
+pub fn file_lang(file: &PathBuf) -> Option<Lang> {
+    let ext = path_ext(file);
     if ext.is_none() {
         return None;
     }
