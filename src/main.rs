@@ -15,7 +15,7 @@ struct Cli {
 
     #[structopt(long = "fin")]
     fin: Option<PathBuf>,
-    
+
     #[structopt(long = "fout")]
     fout: Option<PathBuf>,
 
@@ -24,14 +24,14 @@ struct Cli {
 
     #[structopt(long = "file-input")]
     file_input: bool,
-    
+
     #[structopt(long = "whitespace-fmt")]
     whitespace_matters: bool
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
-    
+
     fcheck::Lang::exec(&args.code)
         .with_context(|| format!(
             "error when executing {}", fcheck::path_str(&args.code)

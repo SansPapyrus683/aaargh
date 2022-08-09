@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result};
+use crate::fcheck;
 
 #[derive(Debug, Clone)]
 pub struct PathNotFound { pub path: std::path::PathBuf }
@@ -36,10 +37,28 @@ impl Display for LangNotFoundError {
 }
 
 #[derive(Debug, Clone)]
+pub struct RuntimeError { pub err: String }
+
+impl Error for RuntimeError {  }
+
+impl Display for RuntimeError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "error while running script:\n{}", self.err)
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum ExecError {
     PathNotFound(PathNotFound),
     BadLang(BadLangError),
-    LangNotFound(LangNotFoundError)
+    LangNotFound(LangNotFoundError),
+    RuntimeError(RuntimeError)
+}
+
+impl ExecError {
+    pub fn lang_not_found(lang: fcheck::Lang) -> ExecError {
+        return Self::LangNotFound(LangNotFoundError { lang });
+    }
 }
 
 impl Error for ExecError { }
@@ -49,7 +68,8 @@ impl Display for ExecError {
         match self {
             ExecError::BadLang(e) => Display::fmt(e, f),
             ExecError::LangNotFound(e) => Display::fmt(e, f),
-            ExecError::PathNotFound(e) => Display::fmt(e, f)
+            ExecError::PathNotFound(e) => Display::fmt(e, f),
+            ExecError::RuntimeError(e) => Display::fmt(e, f)
         }
     }
 }

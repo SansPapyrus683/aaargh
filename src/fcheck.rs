@@ -9,9 +9,7 @@ use strum_macros::{EnumIter, IntoStaticStr};
 use crate::errors::*;
 
 #[derive(Debug, Copy, Clone, EnumIter, IntoStaticStr)]
-pub enum Lang {
-    Python, Java, Cpp
-}
+pub enum Lang { Python, Java, Cpp }
 
 impl Lang {
     fn valid_ext(&self) -> Vec<&str> {
@@ -34,50 +32,38 @@ impl Lang {
             return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
         }
 
-        match lang.unwrap() {
+        let file = path_str(code);
+        let output = match lang.unwrap() {
             Lang::Python => {
-                let py_res = Command::new("python").arg(path_str(code)).spawn();
-                match py_res {
-                    Ok(_) => {}
-                    Err(e) => {
-                        if let ErrorKind::NotFound = e.kind() {
-                            println!("python wasn't found")
-                        } else {
-                            println!("what");
-                        }
-                    }
-                }
+                let cmds = vec!["py", "python", "python3"];
+                let cmd_use = cmds.iter().find(|c| cmd_exists(c))
+                    .ok_or(ExecError::lang_not_found(Lang::Python))?;
+                Command::new(cmd_use).arg(&file).output()
             }
             Lang::Java => {
-
+                let compiler = "javac";
+                let runner = "java";
+                if !cmd_exists(compiler) || !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Java));
+                }
+                Command::new(compiler).arg(&file).spawn().expect("OH NO");
+                Command::new(runner).arg(&file).output()
             }
             Lang::Cpp => {
-                let gcc_res = Command::new("g++").arg(path_str(code)).spawn();
-                match gcc_res {
-                    Ok(_) => {}
-                    Err(e) => {
-                        if let ErrorKind::NotFound = e.kind() {
-                            println!("g++ wasn't found")
-                        } else {
-                            println!("what");
-                        }
-                    }
+                let compiler = "g++";
+                if !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Cpp));
                 }
+                Command::new(compiler).arg(&file).spawn().expect("OH NO");
+                Command::new("./a").output()
             }
         };
+        dbg!(output);
         Ok(())
     }
 }
 
-pub fn path_ext(path: &PathBuf) -> Option<&str> {
-    path.extension().and_then(OsStr::to_str)
-}
-
-pub fn path_str(path: &PathBuf) -> String {
-    path.clone().into_os_string().into_string().unwrap()
-}
-
-pub fn file_lang(file: &PathBuf) -> Option<Lang> {
+fn file_lang(file: &PathBuf) -> Option<Lang> {
     let ext = path_ext(file);
     if ext.is_none() {
         return None;
@@ -89,6 +75,28 @@ pub fn file_lang(file: &PathBuf) -> Option<Lang> {
         }
     }
     None
+}
+
+fn cmd_exists(cmd: &str) -> bool {
+    match Command::new(cmd).arg("--version").spawn() {
+        Ok(_) => true,
+        Err(e) => {
+            if let ErrorKind::NotFound = e.kind() {
+                false
+            } else {
+                true
+            }
+        }
+    }
+}
+
+// general utility methods
+pub fn path_ext(path: &PathBuf) -> Option<&str> {
+    path.extension().and_then(OsStr::to_str)
+}
+
+pub fn path_str(path: &PathBuf) -> String {
+    path.clone().into_os_string().into_string().unwrap()
 }
 
 pub fn check_content(file: &PathBuf) -> Result<String, PathNotFound> {
