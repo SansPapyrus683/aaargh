@@ -1,12 +1,10 @@
-use std::fmt::format;
 use structopt::StructOpt;
-use std::path::PathBuf;
+use std::path::{PathBuf};
 use anyhow::{Context, Result};
-use std::process::Command;
-use colored::Colorize;
 
-pub mod diff;
-pub mod fcheck;
+mod diff;
+mod fcheck;
+mod errors;
 
 #[derive(StructOpt)]
 struct Cli {
@@ -15,23 +13,28 @@ struct Cli {
     #[structopt()]
     code: PathBuf,
 
+    #[structopt(long = "fin")]
+    fin: Option<PathBuf>,
+    
     #[structopt(long = "fout")]
     fout: Option<PathBuf>,
 
     #[structopt(long = "fout-exp")]
     fout_exp: Option<PathBuf>,
 
+    #[structopt(long = "file-input")]
+    file_input: bool,
+    
     #[structopt(long = "whitespace-fmt")]
     whitespace_matters: bool
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
-
-    fcheck::check_content(&args.code)?;
-    let lang = fcheck::file_lang(&args.code)
+    
+    fcheck::Lang::exec(&args.code)
         .with_context(|| format!(
-            "file {} is of an unknown language", fcheck::path_str(&args.code)
+            "error when executing {}", fcheck::path_str(&args.code)
         ))?;
 
     if let Some(f) = &args.fout {

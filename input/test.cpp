@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 
-int main() {
+using namespace std;
 
+int main() {
+    cout << "bruh" << endl;
 }

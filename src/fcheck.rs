@@ -1,10 +1,14 @@
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::ffi::OsStr;
+use std::io::ErrorKind;
+use std::process::Command;
 
-use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
+use strum::{IntoEnumIterator};
+use strum_macros::{EnumIter, IntoStaticStr};
 
-#[derive(Debug, Copy, Clone, EnumIter)]
+use crate::errors::*;
+
+#[derive(Debug, Copy, Clone, EnumIter, IntoStaticStr)]
 pub enum Lang {
     Python, Java, Cpp
 }
@@ -17,13 +21,52 @@ impl Lang {
             Lang::Cpp => vec!["cpp", "cc", "cxx", "c++"]
         }
     }
-}
 
-/// https://stackoverflow.com/questions/42726095
-pub fn file_ext(file: &str) -> Option<&str> {
-    Path::new(file)
-        .extension()
-        .and_then(OsStr::to_str)
+    pub fn exec(code: &PathBuf) -> Result<(), ExecError> {
+        match check_content(code) {
+            Ok(_) => {}
+            Err(e) => return Err(ExecError::PathNotFound(e))
+        }
+
+        let lang = file_lang(code);
+        if lang.is_none() {
+            let ext = path_ext(code).unwrap_or("");
+            return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
+        }
+
+        match lang.unwrap() {
+            Lang::Python => {
+                let py_res = Command::new("python").arg(path_str(code)).spawn();
+                match py_res {
+                    Ok(_) => {}
+                    Err(e) => {
+                        if let ErrorKind::NotFound = e.kind() {
+                            println!("python wasn't found")
+                        } else {
+                            println!("what");
+                        }
+                    }
+                }
+            }
+            Lang::Java => {
+
+            }
+            Lang::Cpp => {
+                let gcc_res = Command::new("g++").arg(path_str(code)).spawn();
+                match gcc_res {
+                    Ok(_) => {}
+                    Err(e) => {
+                        if let ErrorKind::NotFound = e.kind() {
+                            println!("g++ wasn't found")
+                        } else {
+                            println!("what");
+                        }
+                    }
+                }
+            }
+        };
+        Ok(())
+    }
 }
 
 pub fn path_ext(path: &PathBuf) -> Option<&str> {
@@ -48,20 +91,9 @@ pub fn file_lang(file: &PathBuf) -> Option<Lang> {
     None
 }
 
-#[derive(Debug, Clone)]
-pub struct PathDoesntExistError { path: PathBuf }
-
-impl std::error::Error for PathDoesntExistError {  }
-
-impl std::fmt::Display for PathDoesntExistError {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "{} doesn't exist", path_str(&self.path))
-    }
-}
-
-pub fn check_content(file: &PathBuf) -> Result<String, PathDoesntExistError> {
+pub fn check_content(file: &PathBuf) -> Result<String, PathNotFound> {
     if file.is_file() {
         return Ok(std::fs::read_to_string(file).unwrap());
     }
-    Err(PathDoesntExistError { path: file.clone() })
+    Err(PathNotFound { path: file.clone() })
 }
