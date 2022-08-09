@@ -18,6 +18,9 @@ struct Cli {
 
     #[structopt()]
     fout_exp: PathBuf,
+
+    #[structopt(long = "whitespace-fmt")]
+    whitespace_matters: bool
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -33,6 +36,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     diff::diff_lines(
         fout.lines().into_iter(),
         fout_exp.lines().into_iter(),
+        args.whitespace_matters,
         &mut std::io::stdout()
     );
 
