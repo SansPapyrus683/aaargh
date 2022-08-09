@@ -17,9 +17,6 @@ pub fn diff_lines<'a>(
     let mut g_iter = given.into_iter();
     let mut a_iter = actual.into_iter();
 
-    let alpha_str = Regex::new("[a-z]+").unwrap();
-    let num_str = Regex::new(r"-?(\d+)").unwrap();
-
     let mut line_num = 0;
     loop {
         line_num += 1;
@@ -43,8 +40,12 @@ pub fn diff_lines<'a>(
                 ).red(), &mut out);
 
                 if std::mem::discriminant(&go) != std::mem::discriminant(&ao) {
-                    let tp = format!("output types don't match ({:?} should be {:?})", go, ao);
+                    let tp = format!(
+                        "output types don't match ({} should be {})",
+                        go.detected_type(), ao.detected_type()
+                    );
                     writeln(&tp, &mut out);
+                    continue;
                 } else if go == ao {
                     let tp = format!(concat!(
                         "read values seem to be the same, but there seems to be an error in formatting\n",
@@ -86,7 +87,7 @@ pub fn diff_lines<'a>(
                 };
                 writeln(&diff, &mut out);
             }
-            (g, a) => {
+            (g, _) => {
                 let thing = if g.is_none() {
                     ("actual", "given")
                 } else { ("given", "actual") };

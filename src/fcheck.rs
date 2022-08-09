@@ -47,3 +47,21 @@ pub fn file_lang(file: &PathBuf) -> Option<Lang> {
     }
     None
 }
+
+#[derive(Debug, Clone)]
+pub struct PathDoesntExistError { path: PathBuf }
+
+impl std::error::Error for PathDoesntExistError {  }
+
+impl std::fmt::Display for PathDoesntExistError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{} doesn't exist", path_str(&self.path))
+    }
+}
+
+pub fn check_content(file: &PathBuf) -> Result<String, PathDoesntExistError> {
+    if file.is_file() {
+        return Ok(std::fs::read_to_string(file).unwrap());
+    }
+    Err(PathDoesntExistError { path: file.clone() })
+}
