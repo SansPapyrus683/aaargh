@@ -1,7 +1,7 @@
 use std::path::{PathBuf};
 use std::ffi::OsStr;
-use std::io::ErrorKind;
-use std::process::Command;
+use std::io::{ErrorKind, Write};
+use std::process::{Command, ExitStatus, Stdio};
 
 use strum::{IntoEnumIterator};
 use strum_macros::{EnumIter, IntoStaticStr};
@@ -19,65 +19,86 @@ impl Lang {
             Lang::Cpp => vec!["cpp", "cc", "cxx", "c++"]
         }
     }
+}
 
-    pub fn exec(code: &PathBuf) -> Result<String, ExecError> {
-        match check_content(code) {
-            Ok(_) => {}
-            Err(e) => return Err(ExecError::PathNotFound(e))
-        }
+pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), ExecError> {
+    match check_content(code) {
+        Ok(_) => {}
+        Err(e) => return Err(ExecError::PathNotFound(e))
+    };
 
-        let lang = file_lang(code);
-        if lang.is_none() {
-            let ext = path_ext(code).unwrap_or("");
-            return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
-        }
-
-        let file = path_str(code);
-        let output = match lang.unwrap() {
-            Lang::Python => {
-                let cmds = vec!["py", "python", "python3"];
-                let cmd_use = cmds.iter().find(|c| cmd_exists(c))
-                    .ok_or(ExecError::lang_not_found(Lang::Python))?;
-                Command::new(cmd_use).arg(&file).output()
-            }
-            Lang::Java => {
-                let compiler = "javac";
-                let runner = "java";
-                if !cmd_exists(compiler) || !cmd_exists(compiler) {
-                    return Err(ExecError::lang_not_found(Lang::Java));
-                }
-                Command::new(compiler).arg(&file).spawn().expect("JAVA OH NO");
-                Command::new(runner).arg(&file).output()
-            }
-            Lang::Cpp => {
-                let compiler = "g++";
-                if !cmd_exists(compiler) {
-                    return Err(ExecError::lang_not_found(Lang::Cpp));
-                }
-                Command::new(compiler).arg(&file).spawn().expect("C++ OH NO");
-
-                let cmd_name = match std::env::consts::OS {
-                    "linux" => "./a.out",
-                    "mac" => "./a.out",
-                    "windows" => "./a",
-                    _ => ""
-                };
-                Command::new(cmd_name).output()
-            }
-        }.expect("OH NO");
-
-        let status = output.status;
-        if let Some(c) = status.code() {
-            if c != 0 {
-                let err = String::from_utf8(output.stderr).unwrap();
-                return Err(ExecError::runtime_error(&err));
-            }
-        }
-
-        let stdout = String::from_utf8(output.stdout).unwrap();
-
-        Ok(stdout)
+    let lang = file_lang(code);
+    if lang.is_none() {
+        let ext = path_ext(code).unwrap_or("");
+        return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
     }
+
+    let file = path_str(code);
+    let mut cmd;
+    match lang.unwrap() {
+        Lang::Python => {
+            let cmds = vec!["py", "python", "python3"];
+            let cmd_use = cmds.iter().find(|c| cmd_exists(c))
+                .ok_or(ExecError::lang_not_found(Lang::Python))?;
+
+            cmd = Command::new(cmd_use);
+            cmd.arg(&file);
+        }
+        Lang::Java => {
+            let compiler = "javac";
+            let runner = "java";
+            if !cmd_exists(compiler) || !cmd_exists(compiler) {
+                return Err(ExecError::lang_not_found(Lang::Java));
+            }
+            Command::new(compiler).arg(&file).spawn().expect("JAVA OH NO");
+
+            cmd = Command::new(runner);
+            cmd.arg(&file);
+        }
+        Lang::Cpp => {
+            let compiler = "g++";
+            if !cmd_exists(compiler) {
+                return Err(ExecError::lang_not_found(Lang::Cpp));
+            }
+            Command::new(compiler).arg(&file).spawn().expect("C++ OH NO");
+
+            let cmd_name = match std::env::consts::OS {
+                "linux" => "./a.out",
+                "mac" => "./a.out",
+                "windows" => "./a",
+                _ => ""
+            };
+
+            cmd = Command::new(cmd_name);
+        }
+    };
+
+    let mut cmd = cmd
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("something terribly wrong has happened");
+
+    if let Some(input) = input {
+        let mut writer = std::io::BufWriter::new(cmd.stdin.take().unwrap());
+        // https://stackoverflow.com/questions/21615188
+        for l in input.lines() {
+            let eol = '\n';
+            let mut l = l.to_string();
+            l.push(eol);
+            writer.write_all(l.as_bytes()).expect("INPUT OH NO");
+        }
+        writer.flush().expect("god i'm so tired");
+    }
+
+    let output = cmd.wait_with_output().expect("bruh...");
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    if !output.status.success() {
+        return Err(ExecError::runtime_error(&stderr));
+    }
+    Ok((stdout, stderr))
 }
 
 fn file_lang(file: &PathBuf) -> Option<Lang> {
@@ -95,7 +116,9 @@ fn file_lang(file: &PathBuf) -> Option<Lang> {
 }
 
 fn cmd_exists(cmd: &str) -> bool {
-    match Command::new(cmd).arg("--version").spawn() {
+    match Command::new(cmd)
+        .arg("--version")
+        .stdout(Stdio::piped()).spawn() {
         Ok(_) => true,
         Err(e) => e.kind() == ErrorKind::NotFound
     }
