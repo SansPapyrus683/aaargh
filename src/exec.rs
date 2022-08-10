@@ -20,7 +20,7 @@ impl Lang {
         }
     }
 
-    pub fn exec(code: &PathBuf) -> Result<(), ExecError> {
+    pub fn exec(code: &PathBuf) -> Result<String, ExecError> {
         match check_content(code) {
             Ok(_) => {}
             Err(e) => return Err(ExecError::PathNotFound(e))
@@ -46,7 +46,7 @@ impl Lang {
                 if !cmd_exists(compiler) || !cmd_exists(compiler) {
                     return Err(ExecError::lang_not_found(Lang::Java));
                 }
-                Command::new(compiler).arg(&file).spawn().expect("OH NO");
+                Command::new(compiler).arg(&file).spawn().expect("JAVA OH NO");
                 Command::new(runner).arg(&file).output()
             }
             Lang::Cpp => {
@@ -54,12 +54,29 @@ impl Lang {
                 if !cmd_exists(compiler) {
                     return Err(ExecError::lang_not_found(Lang::Cpp));
                 }
-                Command::new(compiler).arg(&file).spawn().expect("OH NO");
-                Command::new("./a").output()
+                Command::new(compiler).arg(&file).spawn().expect("C++ OH NO");
+
+                let cmd_name = match std::env::consts::OS {
+                    "linux" => "./a.out",
+                    "mac" => "./a.out",
+                    "windows" => "./a",
+                    _ => ""
+                };
+                Command::new(cmd_name).output()
             }
-        };
-        dbg!(output);
-        Ok(())
+        }.expect("OH NO");
+
+        let status = output.status;
+        if let Some(c) = status.code() {
+            if c != 0 {
+                let err = String::from_utf8(output.stderr).unwrap();
+                return Err(ExecError::runtime_error(&err));
+            }
+        }
+
+        let stdout = String::from_utf8(output.stdout).unwrap();
+
+        Ok(stdout)
     }
 }
 
@@ -80,13 +97,7 @@ fn file_lang(file: &PathBuf) -> Option<Lang> {
 fn cmd_exists(cmd: &str) -> bool {
     match Command::new(cmd).arg("--version").spawn() {
         Ok(_) => true,
-        Err(e) => {
-            if let ErrorKind::NotFound = e.kind() {
-                false
-            } else {
-                true
-            }
-        }
+        Err(e) => e.kind() == ErrorKind::NotFound
     }
 }
 

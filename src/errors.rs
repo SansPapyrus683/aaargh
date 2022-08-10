@@ -1,6 +1,17 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter, Result};
-use crate::fcheck;
+use crate::exec;
+
+#[derive(Debug, Clone)]
+pub struct ArgError { pub err: String }
+
+impl Error for ArgError {  }
+
+impl Display for ArgError {
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(f, "error with arguments:\n{}", self.err)
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct PathNotFound { pub path: std::path::PathBuf }
@@ -9,7 +20,7 @@ impl Error for PathNotFound {  }
 
 impl Display for PathNotFound {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "the path {} doesn't exist", crate::fcheck::path_str(&self.path))
+        write!(f, "the path {} doesn't exist", exec::path_str(&self.path))
     }
 }
 
@@ -25,7 +36,7 @@ impl Display for BadLangError {
 }
 
 #[derive(Debug, Clone)]
-pub struct LangNotFoundError { pub lang: crate::fcheck::Lang }
+pub struct LangNotFoundError { pub lang: exec::Lang }
 
 impl Error for LangNotFoundError {  }
 
@@ -56,8 +67,20 @@ pub enum ExecError {
 }
 
 impl ExecError {
-    pub fn lang_not_found(lang: fcheck::Lang) -> ExecError {
-        return Self::LangNotFound(LangNotFoundError { lang });
+    pub fn path_not_found(path: std::path::PathBuf) -> ExecError {
+        Self::PathNotFound(PathNotFound { path })
+    }
+
+    pub fn bad_lang(ext: &str) -> ExecError {
+        Self::BadLang(BadLangError { ext: ext.to_string() })
+    }
+
+    pub fn lang_not_found(lang: exec::Lang) -> ExecError {
+        Self::LangNotFound(LangNotFoundError { lang })
+    }
+
+    pub fn runtime_error(err: &str) -> ExecError {
+        Self::RuntimeError(RuntimeError { err: err.to_string() })
     }
 }
 

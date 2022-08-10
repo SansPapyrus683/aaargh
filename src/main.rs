@@ -3,7 +3,7 @@ use std::path::{PathBuf};
 use anyhow::{Context, Result};
 
 mod diff;
-mod fcheck;
+mod exec;
 mod errors;
 
 #[derive(StructOpt)]
@@ -13,43 +13,68 @@ struct Cli {
     #[structopt()]
     code: PathBuf,
 
+    /// file or directory to use for input
     #[structopt(long = "fin")]
-    fin: Option<PathBuf>,
+    fin: PathBuf,
 
+    /// file or directory that contains the actual outputs
     #[structopt(long = "fout")]
-    fout: Option<PathBuf>,
+    fout: PathBuf,
 
-    #[structopt(long = "fout-exp")]
-    fout_exp: Option<PathBuf>,
+    /// file name to use for input (if `None`, stdin will be used)
+    #[structopt(long = "prog-fin")]
+    prog_fin: Option<PathBuf>,
 
-    #[structopt(long = "file-input")]
-    file_input: bool,
+    /// file name to detect for output (if `None`, stdout will be used)
+    #[structopt(long = "prog-fout")]
+    prog_fout: Option<PathBuf>,
 
     #[structopt(long = "whitespace-fmt")]
     whitespace_matters: bool
 }
 
+fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
+    if path.exists() {
+        return Ok(())
+    }
+    Err(errors::PathNotFound { path: path.clone() })
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Cli::from_args();
 
-    fcheck::Lang::exec(&args.code)
+    // testing if all the paths exist
+    for p in vec![&args.code, &args.fin, &args.fout] {
+        path_test(p)?;
+    }
+    if let Some(p) = &args.prog_fin {
+        path_test(&p)?;
+    }
+    if let Some(p) = &args.prog_fout {
+        path_test(&p)?;
+    }
+
+    if args.fin.is_dir() != args.fout.is_dir() {
+        eprintln!("{:?} and {:?} should either both be directories or files", args.fin, args.fout);
+        std::process::exit(1);
+    }
+
+    let res = exec::Lang::exec(&args.code)
         .with_context(|| format!(
-            "error when executing {}", fcheck::path_str(&args.code)
+            "error when executing {}", exec::path_str(&args.code)
         ))?;
 
-    if let Some(f) = &args.fout {
-        if let Some(f_exp) = &args.fout_exp {
-            let fout: String = fcheck::check_content(f)?;
-            let fout_exp: String = fcheck::check_content(f_exp)?;
+    dbg!(args.fout);
 
-            diff::diff_lines(
-                fout.lines().into_iter(),
-                fout_exp.lines().into_iter(),
-                args.whitespace_matters,
-                &mut std::io::stdout()
-            );
-        }
-    }
+    // let fout: String = fcheck::check_content(&args.fout)?;
+    // let fout_exp: String = fcheck::check_content(&args.prog_fout.unwrap())?;
+    //
+    // diff::diff_lines(
+    //     fout.lines().into_iter(),
+    //     fout_exp.lines().into_iter(),
+    //     args.whitespace_matters,
+    //     &mut std::io::stdout()
+    // );
 
     Ok(())
 }
