@@ -14,9 +14,11 @@ pub fn diff_lines<'a>(
     actual: impl IntoIterator<Item = &'a str>,
     whitespace_matters: bool, str_case: bool,
     mut out: impl std::io::Write
-) {
+) -> bool {
     let mut g_vec: Vec<&str> = given.into_iter().collect();
     let mut a_vec: Vec<&str> = actual.into_iter().collect();
+
+    let mut different = false;
 
     if !whitespace_matters {
         while let Some(l) = g_vec.last() {
@@ -35,6 +37,7 @@ pub fn diff_lines<'a>(
     }
 
     if g_vec.len() != a_vec.len() {
+        different = true;
         writeln(&format!("{}", "mismatch:".red()), &mut out);
         let thing = if a_vec.len() > g_vec.len() {
             ("answer", "outputted")
@@ -66,6 +69,7 @@ pub fn diff_lines<'a>(
             continue;
         }
 
+        different = true;
         writeln(&format!(
             "mismatch with {}s at line {line_num}:", go.detected_type()
         ).red(), &mut out);
@@ -119,6 +123,7 @@ pub fn diff_lines<'a>(
         };
         writeln(&diff, &mut out);
     }
+    different
 }
 
 #[derive(Debug, PartialEq)]

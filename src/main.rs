@@ -1,9 +1,10 @@
 use std::io::Write;
 use structopt::StructOpt;
 use std::path::{PathBuf};
+use std::process;
 use anyhow::{Context, Error, Result};
 use colored::Colorize;
-use crate::errors::ExecError;
+use crate::exec::check_content;
 
 mod diff;
 mod exec;
@@ -11,8 +12,7 @@ mod errors;
 
 #[derive(StructOpt)]
 struct Cli {
-    // #[structopt(short = "v", long = "verbose", help = "Print verbose output")]
-    // verbose: bool,
+    /// code file (only supports c++, py, and java)
     #[structopt()]
     code: PathBuf,
 
@@ -23,6 +23,16 @@ struct Cli {
     /// file or directory that contains the actual outputs
     #[structopt(long = "fout")]
     fout: PathBuf,
+
+    /// note: won't be used if `fin` & `fout` are normal files
+    /// the format string for the input files
+    /// (occurrences of `{}` will be replaced with numbers starting from 1)
+    #[structopt(long = "fin-fmt")]
+    fin_fmt: Option<String>,
+
+    /// the format string for the output files (basically same thing as `fin_fmt`)
+    #[structopt(long = "fout-fmt")]
+    fout_fmt: Option<String>,
 
     /// file name to use for input (if `None`, stdin will be used)
     #[structopt(long = "prog-fin")]
@@ -41,11 +51,11 @@ struct Cli {
     #[structopt(long = "str-case")]
     str_case: bool,
 
-    /// should the programs output the stdout w/ the results?
+    /// should the programs output the stdout w/ the diff results?
     #[structopt(long = "prog-stdout")]
     prog_stdout: bool,
 
-    /// should the programs output the stderr w/ the results?
+    /// should the programs output the stderr w/ diff the results?
     #[structopt(long = "prog-stderr")]
     prog_stderr: bool
 }
@@ -96,6 +106,11 @@ fn get_output(
     };
 }
 
+fn dir_file_fmt(str: &str, num: u32) -> String {
+    let fmt_token = "{}";
+    str.replace(fmt_token, &num.to_string())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Cli = Cli::from_args();
 
@@ -106,35 +121,84 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match (args.fin.is_file(), args.fout.is_file()) {
         (true, true) => {
-            let out = get_output(
+            let prog_out = get_output(
                 &args.code,
-                &exec::check_content(&args.fin).unwrap(),
+                &check_content(&args.fin).unwrap(),
                 &args.prog_fin, &args.prog_fout
             )?;
 
             if args.prog_stderr {
                 println!("stderr output:");
-                println!("{}", out.1.blue());
+                println!("{}", prog_out.1.blue());
             }
             if args.prog_stdout {
                 println!("stdout output:");
-                println!("{}", out.0.green());
+                println!("{}", prog_out.0.green());
             }
 
-            let fout_exp: String = exec::check_content(&args.fout)?;
+            let fout_exp: String = check_content(&args.fout)?;
             diff::diff_lines(
-                out.0.lines().into_iter(),
+                prog_out.0.lines().into_iter(),
                 fout_exp.lines().into_iter(),
                 args.whitespace_matters, args.str_case,
                 &mut std::io::stdout()
             );
         },
         (false, false) => {
-            todo!()
+            if args.fin_fmt.is_none() || args.fout_fmt.is_none() {
+                eprintln!("if using folders, a file format string must also be given");
+                process::exit(1);
+            }
+
+            let mut t = 1;
+            loop {
+                let fin_name = dir_file_fmt(&args.fin_fmt.as_ref().unwrap(), t);
+                let fout_name = dir_file_fmt(&args.fout_fmt.as_ref().unwrap(), t);
+
+                let mut fin = args.fin.clone();
+                fin.extend(&[fin_name]);
+                let mut fout = args.fout.clone();
+                fout.extend(&[fout_name]);
+
+                if !fin.is_file() || !fout.is_file() {
+                    break;
+                }
+
+                println!("{}", format!("TEST CASE {}", t).cyan().bold());
+
+                let prog_out = get_output(
+                    &args.code,
+                    &check_content(&fin)?,
+                    &args.prog_fin, &args.prog_fout
+                )?;
+
+                if args.prog_stderr {
+                    println!("stderr output:");
+                    println!("{}", prog_out.1.blue());
+                }
+                if args.prog_stdout {
+                    println!("stdout output:");
+                    println!("{}", prog_out.0.green());
+                }
+
+                let fout = check_content(&fout)?;
+                let diff_res = diff::diff_lines(
+                    prog_out.0.lines().into_iter(),
+                    fout.lines().into_iter(),
+                    args.whitespace_matters, args.str_case,
+                    &mut std::io::stdout()
+                );
+
+                if !diff_res {
+                    println!("{}", "hooray, test case correct!".bright_green());
+                }
+
+                t += 1;
+            }
         },
         _ => {
             eprintln!("{:?} and {:?} should either both be directories or files", args.fin, args.fout);
-            std::process::exit(1);
+            process::exit(1);
         }
     };
 
