@@ -108,6 +108,7 @@ fn get_output(
 
 fn dir_file_fmt(str: &str, num: u32) -> String {
     let fmt_token = "{}";
+    assert!(str.matches(fmt_token).count() > 0);
     str.replace(fmt_token, &num.to_string())
 }
 

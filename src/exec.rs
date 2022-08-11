@@ -1,7 +1,7 @@
 use std::path::{PathBuf};
 use std::ffi::OsStr;
 use std::io::{ErrorKind, Write};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Command, Stdio};
 
 use strum::{IntoEnumIterator};
 use strum_macros::{EnumIter, IntoStaticStr};
