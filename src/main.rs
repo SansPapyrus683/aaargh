@@ -1,3 +1,4 @@
+use std::ffi::{OsStr, OsString};
 use std::io::Write;
 use structopt::StructOpt;
 use std::path::{PathBuf};
@@ -42,7 +43,7 @@ struct Cli {
     #[structopt(long = "prog-fout")]
     prog_fout: Option<PathBuf>,
 
-    /// some graders don't care how you space your numbers
+    /// some graders don't care how you space your numbers.
     /// if your grader isn't one of these, set this flag
     #[structopt(long = "whitespace-fmt")]
     whitespace_matters: bool,
@@ -57,7 +58,18 @@ struct Cli {
 
     /// should the programs output the stderr w/ diff the results?
     #[structopt(long = "prog-stderr")]
-    prog_stderr: bool
+    prog_stderr: bool,
+
+    #[structopt(subcommand)]
+    run_options: Option<RunOptions>
+}
+
+// https://docs.rs/structopt/latest/structopt/#external-subcommands
+#[derive(Debug, PartialEq, StructOpt)]
+pub enum RunOptions {
+    None,
+    #[structopt(external_subcommand)]
+    Some(Vec<OsString>)
 }
 
 fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
@@ -68,7 +80,7 @@ fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
 }
 
 fn get_output(
-    code: &PathBuf, input: &str,
+    code: &PathBuf, options: &RunOptions, input: &str,
     fin: &Option<PathBuf>, fout: &Option<PathBuf>
 ) -> Result<(String, String), Error> {
     match fin {
@@ -86,7 +98,7 @@ fn get_output(
         }
     }
 
-    let res = exec::exec(code, Some(input))
+    let res = exec::exec(code, Some(input), &options)
         .with_context(|| format!(
             "error when executing {}", exec::path_str(code)
         ));
@@ -115,6 +127,11 @@ fn dir_file_fmt(str: &str, num: u32) -> String {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Cli = Cli::from_args();
 
+    let run_options = match args.run_options {
+        None => RunOptions::None,
+        Some(args) => args
+    };
+
     // testing if all the paths exist
     for p in vec![&args.code, &args.fin, &args.fout] {
         path_test(p)?;
@@ -124,6 +141,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (true, true) => {
             let prog_out = get_output(
                 &args.code,
+                &run_options,
                 &check_content(&args.fin).unwrap(),
                 &args.prog_fin, &args.prog_fout
             )?;
@@ -138,12 +156,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
 
             let fout_exp: String = check_content(&args.fout)?;
-            diff::diff_lines(
+            let diff_res = diff::diff_lines(
                 prog_out.0.lines().into_iter(),
                 fout_exp.lines().into_iter(),
                 args.whitespace_matters, args.str_case,
                 &mut std::io::stdout()
             );
+
+            if !diff_res {
+                println!("{}", "hooray, test case correct!".bright_green());
+            }
         },
         (false, false) => {
             if args.fin_fmt.is_none() || args.fout_fmt.is_none() {
@@ -169,6 +191,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 let prog_out = get_output(
                     &args.code,
+                    &run_options,
                     &check_content(&fin)?,
                     &args.prog_fin, &args.prog_fout
                 )?;

@@ -1,11 +1,12 @@
 use std::path::{PathBuf};
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
 
 use strum::{IntoEnumIterator};
 use strum_macros::{EnumIter, IntoStaticStr};
 
+use crate::RunOptions;
 use crate::errors::*;
 
 #[derive(Debug, Copy, Clone, EnumIter, IntoStaticStr)]
@@ -21,7 +22,9 @@ impl Lang {
     }
 }
 
-pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), ExecError> {
+pub fn exec(
+    code: &PathBuf, input: Option<&str>, args: &RunOptions,
+) -> Result<(String, String), ExecError> {
     match check_content(code) {
         Ok(_) => {}
         Err(e) => return Err(ExecError::PathNotFound(e))
@@ -33,6 +36,11 @@ pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), Exe
         return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
     }
 
+    let options = match args {
+        RunOptions::Some(a) => a.clone(),
+        RunOptions::None => Vec::new()
+    };
+
     let file = path_str(code);
     let mut cmd;
     match lang.unwrap() {
@@ -42,7 +50,7 @@ pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), Exe
                 .ok_or(ExecError::lang_not_found(Lang::Python))?;
 
             cmd = Command::new(cmd_use);
-            cmd.arg(&file);
+            cmd.arg(&file).args(&options);
         }
         Lang::Java => {
             let compiler = "javac";
@@ -50,7 +58,10 @@ pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), Exe
             if !cmd_exists(compiler) || !cmd_exists(compiler) {
                 return Err(ExecError::lang_not_found(Lang::Java));
             }
-            Command::new(compiler).arg(&file).spawn().expect("JAVA OH NO");
+            Command::new(compiler)
+                .arg(&file)
+                .args(&options)
+                .spawn().expect("JAVA OH NO");
 
             cmd = Command::new(runner);
             cmd.arg(&file);
@@ -60,7 +71,10 @@ pub fn exec(code: &PathBuf, input: Option<&str>) -> Result<(String, String), Exe
             if !cmd_exists(compiler) {
                 return Err(ExecError::lang_not_found(Lang::Cpp));
             }
-            Command::new(compiler).arg(&file).spawn().expect("C++ OH NO");
+            Command::new(compiler)
+                .arg(&file)
+                .args(&options)
+                .spawn().expect("C++ OH NO");
 
             let cmd_name = match std::env::consts::OS {
                 "linux" => "./a.out",
