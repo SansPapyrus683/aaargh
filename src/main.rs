@@ -11,6 +11,8 @@ mod diff;
 mod exec;
 mod errors;
 
+const FMT_TOKEN: &str = "{}";
+
 #[derive(StructOpt)]
 struct Cli {
     /// code file (only supports c++, py, and java)
@@ -119,10 +121,9 @@ fn get_output(
     };
 }
 
+/// because format! is a lil b-word, this manually replaces
 fn dir_file_fmt(str: &str, num: u32) -> String {
-    let fmt_token = "{}";
-    assert!(str.matches(fmt_token).count() > 0);
-    str.replace(fmt_token, &num.to_string())
+    str.replace(FMT_TOKEN, &num.to_string())
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -168,15 +169,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         (false, false) => {
-            if args.fin_fmt.is_none() || args.fout_fmt.is_none() {
-                eprintln!("if using folders, a file format string must also be given");
-                process::exit(1);
-            }
+            let default = "{}.in".to_string();
+            let fin_fmt = args.fin_fmt.as_ref().unwrap_or(&default);
+            let default = "{}.out".to_string();
+            let fout_fmt = args.fout_fmt.as_ref().unwrap_or(&default);
+
+            let once = fin_fmt.matches(FMT_TOKEN).count() == 0
+                && fout_fmt.matches(FMT_TOKEN).count() == 0;
 
             let mut t = 1;
             loop {
-                let fin_name = dir_file_fmt(&args.fin_fmt.as_ref().unwrap(), t);
-                let fout_name = dir_file_fmt(&args.fout_fmt.as_ref().unwrap(), t);
+                let fin_name = dir_file_fmt(fin_fmt, t);
+                let fout_name = dir_file_fmt(fout_fmt, t);
 
                 let mut fin = args.fin.clone();
                 fin.extend(&[fin_name]);
@@ -217,6 +221,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 t += 1;
+                if once {
+                    break;
+                }
             }
         },
         _ => {
