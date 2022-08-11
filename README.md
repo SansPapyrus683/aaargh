@@ -5,8 +5,8 @@
 
 the others aren't here, it's just me, KS writing this  
 
-this program supports (or at least tries to support) windows, mac, and linux
-(at this point i don't even know what counts as linux anymore)  
+this program supports just windows at the moment, i'll try to support mac & linux once i figure out
+how the frick to do cross compiling  
 as for languages, it supports python, java, and c++
 
 much of the arguments should be documented [here](src/main.rs), but i'll put some general usage here again
