@@ -80,7 +80,8 @@ fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
 }
 
 fn get_output(
-    code: &PathBuf, options: &RunOptions, input: &str,
+    code: &PathBuf, input: &str,
+    options: &RunOptions, compiled: bool,
     fin: &Option<PathBuf>, fout: &Option<PathBuf>
 ) -> Result<(String, String), Error> {
     match fin {
@@ -98,7 +99,7 @@ fn get_output(
         }
     }
 
-    let res = exec::exec(code, Some(input), &options)
+    let res = exec::exec(code, Some(input), &options, compiled)
         .with_context(|| format!(
             "error when executing {}", exec::path_str(code)
         ));
@@ -140,9 +141,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     match (args.fin.is_file(), args.fout.is_file()) {
         (true, true) => {
             let prog_out = get_output(
-                &args.code,
-                &run_options,
-                &check_content(&args.fin).unwrap(),
+                &args.code, &check_content(&args.fin).unwrap(),
+                &run_options, false,
                 &args.prog_fin, &args.prog_fout
             )?;
 
@@ -190,9 +190,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", format!("TEST CASE {}", t).cyan().bold());
 
                 let prog_out = get_output(
-                    &args.code,
-                    &run_options,
-                    &check_content(&fin)?,
+                    &args.code, &check_content(&fin)?,
+                    &run_options, t > 1,
                     &args.prog_fin, &args.prog_fout
                 )?;
 

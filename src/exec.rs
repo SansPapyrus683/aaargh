@@ -23,7 +23,8 @@ impl Lang {
 }
 
 pub fn exec(
-    code: &PathBuf, input: Option<&str>, args: &RunOptions,
+    code: &PathBuf, input: Option<&str>,
+    options: &RunOptions, compiled: bool
 ) -> Result<(String, String), ExecError> {
     match check_content(code) {
         Ok(_) => {}
@@ -36,7 +37,7 @@ pub fn exec(
         return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
     }
 
-    let options = match args {
+    let options = match options {
         RunOptions::Some(a) => a.clone(),
         RunOptions::None => Vec::new()
     };
@@ -53,28 +54,35 @@ pub fn exec(
             cmd.arg(&file).args(&options);
         }
         Lang::Java => {
-            let compiler = "javac";
             let runner = "java";
-            if !cmd_exists(compiler) || !cmd_exists(compiler) {
-                return Err(ExecError::lang_not_found(Lang::Java));
+            if !compiled {
+                let compiler = "javac";
+                if !cmd_exists(runner) || !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Java));
+                }
+                Command::new(compiler)
+                    .arg(&file)
+                    .args(&options)
+                    .spawn().expect("JAVA OH NO")
+                    // make sure compilation finishes first
+                    .wait().expect("bruh...");
             }
-            Command::new(compiler)
-                .arg(&file)
-                .args(&options)
-                .spawn().expect("JAVA OH NO");
 
             cmd = Command::new(runner);
             cmd.arg(&file);
         }
         Lang::Cpp => {
-            let compiler = "g++";
-            if !cmd_exists(compiler) {
-                return Err(ExecError::lang_not_found(Lang::Cpp));
+            if !compiled {
+                let compiler = "g++";
+                if !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Cpp));
+                }
+                Command::new(compiler)
+                    .arg(&file)
+                    .args(&options)
+                    .spawn().expect("C++ OH NO")
+                    .wait().expect("bruh...");
             }
-            Command::new(compiler)
-                .arg(&file)
-                .args(&options)
-                .spawn().expect("C++ OH NO");
 
             let cmd_name = match std::env::consts::OS {
                 "linux" => "./a.out",
