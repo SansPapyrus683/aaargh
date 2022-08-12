@@ -12,6 +12,8 @@ specifically, binaries built with `x86_64-pc-windows-msvc` and `x86_64-unknown-l
 whatever that means  
 mac users are gonna have to build this on their own, frick you tim cook
 
+### usage
+
 much of the arguments should be documented [here](src/main.rs), but i'll put some general usage here again
 
 the simplest call goes something like this:
