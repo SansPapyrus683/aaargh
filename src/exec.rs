@@ -10,7 +10,7 @@ use crate::RunOptions;
 use crate::errors::*;
 
 #[derive(Debug, Copy, Clone, EnumIter, IntoStaticStr)]
-pub enum Lang { Python, Java, Cpp }
+pub(crate) enum Lang { Python, Java, Cpp }
 
 impl Lang {
     fn valid_ext(&self) -> Vec<&str> {
@@ -31,7 +31,7 @@ impl Lang {
 /// * compiled: has this been compiled already?
 ///   * if it's an interpreted language, has no effect
 ///   * if it's compiled, this will just run the relevant execution command
-pub fn exec(
+pub(crate) fn exec(
     code: &PathBuf, input: Option<&str>,
     options: &RunOptions, compiled: bool
 ) -> Result<(String, String), ExecError> {
@@ -156,15 +156,15 @@ fn cmd_exists(cmd: &str) -> bool {
 }
 
 // general utility methods
-pub fn path_ext(path: &PathBuf) -> Option<&str> {
+pub(crate) fn path_ext(path: &PathBuf) -> Option<&str> {
     path.extension().and_then(OsStr::to_str)
 }
 
-pub fn path_str(path: &PathBuf) -> String {
+pub(crate) fn path_str(path: &PathBuf) -> String {
     path.clone().into_os_string().into_string().unwrap()
 }
 
-pub fn check_content(file: &PathBuf) -> Result<String, PathNotFound> {
+pub(crate) fn check_content(file: &PathBuf) -> Result<String, PathNotFound> {
     if file.is_file() {
         return Ok(std::fs::read_to_string(file).unwrap());
     }

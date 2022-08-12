@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter, Result};
 use crate::exec;
 
 #[derive(Debug, Clone)]
-pub struct ArgError { pub err: String }
+pub(crate) struct ArgError { pub(crate) err: String }
 
 impl Error for ArgError {  }
 
@@ -14,7 +14,7 @@ impl Display for ArgError {
 }
 
 #[derive(Debug, Clone)]
-pub struct PathNotFound { pub path: std::path::PathBuf }
+pub(crate) struct PathNotFound { pub(crate) path: std::path::PathBuf }
 
 impl Error for PathNotFound {  }
 
@@ -25,7 +25,7 @@ impl Display for PathNotFound {
 }
 
 #[derive(Debug, Clone)]
-pub struct BadLangError { pub ext: String }
+pub(crate) struct BadLangError { pub(crate) ext: String }
 
 impl Error for BadLangError {  }
 
@@ -36,7 +36,7 @@ impl Display for BadLangError {
 }
 
 #[derive(Debug, Clone)]
-pub struct LangNotFoundError { pub lang: exec::Lang }
+pub(crate) struct LangNotFoundError { pub(crate) lang: exec::Lang }
 
 impl Error for LangNotFoundError {  }
 
@@ -48,7 +48,7 @@ impl Display for LangNotFoundError {
 }
 
 #[derive(Debug, Clone)]
-pub struct RuntimeError { pub err: String }
+pub(crate) struct RuntimeError { pub(crate) err: String }
 
 impl Error for RuntimeError {  }
 
@@ -59,7 +59,7 @@ impl Display for RuntimeError {
 }
 
 #[derive(Debug, Clone)]
-pub enum ExecError {
+pub(crate) enum ExecError {
     PathNotFound(PathNotFound),
     BadLang(BadLangError),
     LangNotFound(LangNotFoundError),
@@ -67,19 +67,19 @@ pub enum ExecError {
 }
 
 impl ExecError {
-    pub fn path_not_found(path: std::path::PathBuf) -> ExecError {
+    pub(crate) fn path_not_found(path: std::path::PathBuf) -> ExecError {
         Self::PathNotFound(PathNotFound { path })
     }
 
-    pub fn bad_lang(ext: &str) -> ExecError {
+    pub(crate) fn bad_lang(ext: &str) -> ExecError {
         Self::BadLang(BadLangError { ext: ext.to_string() })
     }
 
-    pub fn lang_not_found(lang: exec::Lang) -> ExecError {
+    pub(crate) fn lang_not_found(lang: exec::Lang) -> ExecError {
         Self::LangNotFound(LangNotFoundError { lang })
     }
 
-    pub fn runtime_error(err: &str) -> ExecError {
+    pub(crate) fn runtime_error(err: &str) -> ExecError {
         Self::RuntimeError(RuntimeError { err: err.to_string() })
     }
 }

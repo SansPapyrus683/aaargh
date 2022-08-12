@@ -9,7 +9,7 @@ fn writeln(s: &(impl Display + ?Sized), mut out: impl std::io::Write) {
     }
 }
 
-pub fn diff_lines<'a>(
+pub(crate) fn diff_lines<'a>(
     given: impl IntoIterator<Item = &'a str>,
     actual: impl IntoIterator<Item = &'a str>,
     whitespace_matters: bool, str_case: bool,

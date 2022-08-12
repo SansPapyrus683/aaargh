@@ -1,78 +1,20 @@
-use std::ffi::{OsString};
 use std::io::Write;
-use structopt::StructOpt;
 use std::path::{PathBuf};
 use std::process;
+
+use structopt::StructOpt;
 use anyhow::{Context, Error, Result};
 use colored::Colorize;
-use crate::exec::check_content;
 
+use crate::exec::check_content;
+use crate::cli::{RunOptions, Cli};
+
+mod cli;
 mod diff;
 mod exec;
 mod errors;
 
 const FMT_TOKEN: &str = "{}";
-
-#[derive(StructOpt)]
-struct Cli {
-    /// code file (only supports c++, py, and java)
-    #[structopt()]
-    code: PathBuf,
-
-    /// file or directory to use for input
-    #[structopt(long = "fin")]
-    fin: PathBuf,
-
-    /// file or directory that contains the actual outputs
-    #[structopt(long = "fout")]
-    fout: PathBuf,
-
-    /// note: won't be used if `fin` & `fout` are normal files
-    /// the format string for the input files
-    /// (occurrences of `{}` will be replaced with numbers starting from 1)
-    #[structopt(long = "fin-fmt")]
-    fin_fmt: Option<String>,
-
-    /// the format string for the output files (basically same thing as `fin_fmt`)
-    #[structopt(long = "fout-fmt")]
-    fout_fmt: Option<String>,
-
-    /// file name to use for input (if `None`, stdin will be used)
-    #[structopt(long = "prog-fin")]
-    prog_fin: Option<PathBuf>,
-
-    /// file name to detect for output (if `None`, stdout will be used)
-    #[structopt(long = "prog-fout")]
-    prog_fout: Option<PathBuf>,
-
-    /// some graders don't care how you space your numbers.
-    /// if your grader isn't one of these, set this flag
-    #[structopt(long = "whitespace-fmt")]
-    whitespace_matters: bool,
-
-    /// when comparing strings, should capitalization & the like matter?
-    #[structopt(long = "str-case")]
-    str_case: bool,
-
-    /// should the programs output the stdout w/ the diff results?
-    #[structopt(long = "prog-stdout")]
-    prog_stdout: bool,
-
-    /// should the programs output the stderr w/ diff the results?
-    #[structopt(long = "prog-stderr")]
-    prog_stderr: bool,
-
-    #[structopt(subcommand)]
-    run_options: Option<RunOptions>
-}
-
-// https://docs.rs/structopt/latest/structopt/#external-subcommands
-#[derive(Debug, PartialEq, StructOpt)]
-pub enum RunOptions {
-    None,
-    #[structopt(external_subcommand)]
-    Some(Vec<OsString>)
-}
 
 fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
     if path.exists() {
