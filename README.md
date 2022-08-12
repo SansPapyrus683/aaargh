@@ -45,6 +45,6 @@ but there's a _whole_ buncha options, i'll go over them
 and sometimes you wanna pass in special commands to the compiler as well  
 that's completely fine, just put a `--` at the end of your command, then type in your arguments like so:
 ```shell
-run -- test/test.cpp --fin test/input.txt --fout test/ans.txt --prog-stdout --prog-stderr -- -std=c++17
+aaargh -- test/test.cpp --fin test/input.txt --fout test/ans.txt --prog-stdout --prog-stderr -- -std=c++17
 ```
 so now `-std=c++17` will get passed to `g++`
