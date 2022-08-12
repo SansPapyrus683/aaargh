@@ -5,9 +5,12 @@
 
 the others aren't here, it's just me, KS writing this  
 
-this program supports just windows at the moment, i'll try to support mac & linux once i figure out
-how the frick to do cross compiling  
-as for languages, it supports python, java, and c++
+### support
+
+so far releases only contain executables for windows & linux  
+specifically, binaries built with `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-musl`,
+whatever that means  
+mac users are gonna have to build this on their own, frick you tim cook
 
 much of the arguments should be documented [here](src/main.rs), but i'll put some general usage here again
 

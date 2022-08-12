@@ -1,5 +1,5 @@
 use std::path::{PathBuf};
-use std::ffi::{OsStr, OsString};
+use std::ffi::{OsStr};
 use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
 
@@ -22,6 +22,15 @@ impl Lang {
     }
 }
 
+/// executes some code from a path given input & whatever
+/// ### arguments:
+/// * code: path with code, only supports python 3, c++, and java
+/// * input: optional input to be passed into stdin
+/// * options: `RunOptions` from the main file, contains arguments
+///            to be passed to the created compiler/interpreter process
+/// * compiled: has this been compiled already?
+///   * if it's an interpreted language, has no effect
+///   * if it's compiled, this will just run the relevant execution command
 pub fn exec(
     code: &PathBuf, input: Option<&str>,
     options: &RunOptions, compiled: bool

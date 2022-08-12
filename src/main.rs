@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::{OsString};
 use std::io::Write;
 use structopt::StructOpt;
 use std::path::{PathBuf};
@@ -121,7 +121,7 @@ fn get_output(
     };
 }
 
-/// because format! is a lil b-word, this manually replaces
+/// because format! is a lil b-word, this manually formats it with a given numberx
 fn dir_file_fmt(str: &str, num: u32) -> String {
     str.replace(FMT_TOKEN, &num.to_string())
 }
