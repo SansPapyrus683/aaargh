@@ -7,13 +7,21 @@ pub(crate) struct Cli {
     #[structopt()]
     pub(crate) code: PathBuf,
 
+    /// generator code, only supports stdout because i'm a lazy frick
+    #[structopt(long = "gen", short = "g")]
+    pub(crate) gen: Option<PathBuf>,
+
+    /// correct code (required only if given generator)
+    #[structopt(long = "ans", short = "a", requires("gen"))]
+    pub(crate) ans: PathBuf,
+
     /// file or directory to use for input
-    #[structopt(long = "fin")]
-    pub(crate) fin: PathBuf,
+    #[structopt(long = "fin", conflicts_with("gen"), required_unless("gen"))]
+    pub(crate) fin: Option<PathBuf>,
 
     /// file or directory that contains the actual outputs
-    #[structopt(long = "fout")]
-    pub(crate) fout: PathBuf,
+    #[structopt(long = "fout", conflicts_with("ans"), requires("fin"))]
+    pub(crate) fout: Option<PathBuf>,  // no clue why i have to Option<> this
 
     /// note: won't be used if `fin` & `fout` are normal files
     /// the format string for the input files
@@ -32,6 +40,8 @@ pub(crate) struct Cli {
     /// file name to detect for output (if `None`, stdout will be used)
     #[structopt(long = "prog-fout")]
     pub(crate) prog_fout: Option<PathBuf>,
+
+    // flags for custom grading/running options
 
     /// some graders don't care how you space your numbers.
     /// if your grader isn't one of these, set this flag

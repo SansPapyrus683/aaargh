@@ -6,7 +6,7 @@ use structopt::StructOpt;
 use anyhow::{Context, Error, Result};
 use colored::Colorize;
 
-use crate::exec::check_content;
+use crate::exec::{check_content, exec, ProgRes};
 use crate::cli::{RunOptions, Cli};
 
 mod cli;
@@ -27,7 +27,7 @@ fn get_output(
     code: &PathBuf, input: &str,
     options: &RunOptions, compiled: bool,
     fin: &Option<PathBuf>, fout: &Option<PathBuf>
-) -> Result<(String, String), Error> {
+) -> Result<(ProgRes, String), Error> {
     match fin {
         None => {}
         Some(dir) => {
@@ -43,29 +43,36 @@ fn get_output(
         }
     }
 
-    let res = exec::exec(code, Some(input), &options, compiled)
+    let res = exec::exec(code, input, &options, compiled)
         .with_context(|| format!(
             "error when executing {}", exec::path_str(code)
         ));
 
     return match res {
-        Ok(ref out) => {
+        Ok(res) => {
             match fout {
-                None => res,
+                None => Ok((res, "".to_string())),
                 Some(f) => {
-                    let ans = std::fs::read_to_string(f).expect("crap");
-                    let stderr = out.1.clone();
-                    Ok((ans, stderr))
+                    let file = std::fs::read_to_string(f).expect("crap");
+                    Ok((res, file))
                 }
             }
         }
-        Err(_) => res
+        Err(err) => Err(err)
     };
 }
 
-/// because format! is a lil b-word, this manually formats it with a given numberx
-fn dir_file_fmt(str: &str, num: u32) -> String {
-    str.replace(FMT_TOKEN, &num.to_string())
+fn prog_res(
+    res: &ProgRes,
+    stdout: bool, stderr: bool,
+    mut out: impl Write
+) {
+    if stderr {
+        writeln!(out, "stderr output:\n{}", res.stderr.blue()).expect("oh no");
+    }
+    if stdout {
+        writeln!(out, "stdout output:\n{}", res.stdout.green()).expect("oh no");
+    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -76,31 +83,82 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(args) => args
     };
 
+    path_test(&args.code)?;
+
+    if args.gen.is_some() {
+        let gen_code = args.gen.unwrap();
+        for t in 1..=10 {
+            let tc = get_output(
+                &gen_code, "",
+                &RunOptions::None, t != 1,
+                &None, &None
+            )?.0.stdout;  // discard stderr
+
+            let correct = get_output(
+                &args.ans, &tc,
+                &run_options, t != 1,
+                &args.prog_fin, &args.prog_fout
+            )?.0.stdout;
+
+            let (normal, file) = get_output(
+                &args.code, &tc,
+                &run_options, t != 1,
+                &args.prog_fin, &args.prog_fout
+            )?;
+
+            println!("{}", format!("TEST CASE {}", t).cyan().bold());
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+            println!("{}", format!("execution time (s): {}", normal.time).cyan());
+
+            let ans = match args.prog_fout {
+                None => normal.stdout,
+                Some(_) => file
+            };
+            let diff_res = diff::diff_lines(
+                ans.lines().into_iter(),
+                correct.lines().into_iter(),
+                args.whitespace_matters, args.str_case,
+                &mut std::io::stdout()
+            );
+
+            if diff_res {
+                println!("{}\n{}", "test case failed:".red(), tc.red());
+                break;
+            }
+            println!("{}", "hooray, test case correct!".bright_green());
+        }
+        return Ok(());
+    }
+
+    let args_fin = args.fin.with_context(
+        || format!("input file or directory not found")
+    ).unwrap();
+    let args_fout = args.fout.with_context(
+        || format!("output file or directory not found")
+    ).unwrap();
+
     // testing if all the paths exist
-    for p in vec![&args.code, &args.fin, &args.fout] {
+    for p in vec![&args_fin, &args_fout] {
         path_test(p)?;
     }
 
-    match (args.fin.is_file(), args.fout.is_file()) {
+    match (args_fin.is_file(), args_fout.is_file()) {
         (true, true) => {
-            let prog_out = get_output(
-                &args.code, &check_content(&args.fin).unwrap(),
+            let (normal, file) = get_output(
+                &args.code, &check_content(&args_fin).unwrap(),
                 &run_options, false,
                 &args.prog_fin, &args.prog_fout
             )?;
 
-            if args.prog_stderr {
-                println!("stderr output:");
-                println!("{}", prog_out.1.blue());
-            }
-            if args.prog_stdout {
-                println!("stdout output:");
-                println!("{}", prog_out.0.green());
-            }
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
 
-            let fout_exp: String = check_content(&args.fout)?;
+            let ans = match args.prog_fout {
+                None => normal.stdout,
+                Some(_) => file
+            };
+            let fout_exp = check_content(&args_fout)?;
             let diff_res = diff::diff_lines(
-                prog_out.0.lines().into_iter(),
+                ans.lines().into_iter(),
                 fout_exp.lines().into_iter(),
                 args.whitespace_matters, args.str_case,
                 &mut std::io::stdout()
@@ -121,12 +179,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let mut t = 1;
             loop {
-                let fin_name = dir_file_fmt(fin_fmt, t);
-                let fout_name = dir_file_fmt(fout_fmt, t);
+                let fin_name = fin_fmt.replace(FMT_TOKEN, &t.to_string());
+                let fout_name = fout_fmt.replace(FMT_TOKEN, &t.to_string());
 
-                let mut fin = args.fin.clone();
+                let mut fin = args_fin.clone();
                 fin.extend(&[fin_name]);
-                let mut fout = args.fout.clone();
+                let mut fout = args_fout.clone();
                 fout.extend(&[fout_name]);
 
                 if !fin.is_file() || !fout.is_file() {
@@ -135,24 +193,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 println!("{}", format!("TEST CASE {}", t).cyan().bold());
 
-                let prog_out = get_output(
+                let (normal, file) = get_output(
                     &args.code, &check_content(&fin)?,
                     &run_options, t > 1,
                     &args.prog_fin, &args.prog_fout
                 )?;
 
-                if args.prog_stderr {
-                    println!("stderr output:");
-                    println!("{}", prog_out.1.blue());
-                }
-                if args.prog_stdout {
-                    println!("stdout output:");
-                    println!("{}", prog_out.0.green());
-                }
+                prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
 
+                let ans = match args.prog_fout {
+                    None => normal.stdout,
+                    Some(_) => file
+                };
                 let fout = check_content(&fout)?;
                 let diff_res = diff::diff_lines(
-                    prog_out.0.lines().into_iter(),
+                    ans.lines().into_iter(),
                     fout.lines().into_iter(),
                     args.whitespace_matters, args.str_case,
                     &mut std::io::stdout()
@@ -169,7 +224,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
         _ => {
-            eprintln!("{:?} and {:?} should either both be directories or files", args.fin, args.fout);
+            eprintln!("{:?} and {:?} should either both be directories or files", args_fin, args_fout);
             process::exit(1);
         }
     };

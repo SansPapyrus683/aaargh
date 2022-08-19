@@ -54,7 +54,7 @@ impl Error for RuntimeError {  }
 
 impl Display for RuntimeError {
     fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "error while running script:\n{}", self.err)
+        write!(f, "error while executing script:\n{}", self.err)
     }
 }
 
