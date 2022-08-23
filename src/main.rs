@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.gen.is_some() {
         let gen_code = args.gen.unwrap();
-        for t in 1..=10 {
+        for t in 1..=args.test_amt {
             let tc = get_output(
                 &gen_code, "",
                 &RunOptions::None, t != 1,
@@ -100,13 +100,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &args.prog_fin, &args.prog_fout
             )?.0.stdout;
 
+            println!("{}", format!("TEST CASE {}", t).cyan().bold());
             let (normal, file) = get_output(
                 &args.code, &tc,
                 &run_options, t != 1,
                 &args.prog_fin, &args.prog_fout
             )?;
-
-            println!("{}", format!("TEST CASE {}", t).cyan().bold());
             prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
             println!("{}", format!("execution time (s): {}", normal.time).cyan());
 
@@ -151,6 +150,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )?;
 
             prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+            println!("{}", format!("execution time (s): {}", normal.time).cyan());
 
             let ans = match args.prog_fout {
                 None => normal.stdout,
@@ -192,14 +192,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
 
                 println!("{}", format!("TEST CASE {}", t).cyan().bold());
-
                 let (normal, file) = get_output(
                     &args.code, &check_content(&fin)?,
                     &run_options, t > 1,
                     &args.prog_fin, &args.prog_fout
                 )?;
-
                 prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+                println!("{}", format!("execution time (s): {}", normal.time).cyan());
 
                 let ans = match args.prog_fout {
                     None => normal.stdout,

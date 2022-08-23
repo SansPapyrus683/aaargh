@@ -26,6 +26,7 @@ this will compile run the program with `input.txt` redirected into standard inpu
 but there's a _whole_ buncha options, i'll go over them
 * `--gen` or `-g`- the generator script that should print random test cases to stdout
   * `--ans` or `-a`- the checker program that outputs the actual answer for each test case
+  * `--gen-amt`- how many times do you want to run the generator? (default is 20)
 * `--fin`- file (or directory) to use for input
   * `--fout`- file (or directory) to use for actual output (must be same type as `fin`)
 * `--fin-fmt` & `--fout-fmt`- if `fin` and `fout` are directories, i'm gonna need a format for what the files
