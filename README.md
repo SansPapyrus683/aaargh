@@ -1,6 +1,8 @@
 # AAARGH
 ### Adequate And Anxiety-Reducing, General HELPME
 
+made for stress testing programs for when you can't find that goddamned test case which WAs your program
+
 ## docs
 
 the others aren't here, it's just me, KS writing this  
