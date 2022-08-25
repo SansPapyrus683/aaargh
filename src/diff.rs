@@ -40,11 +40,11 @@ pub(crate) fn diff_lines<'a>(
         different = true;
         writeln(&format!("{}", "mismatch:".red()), &mut out);
         let thing = if a_vec.len() > g_vec.len() {
-            ("answer", "outputted")
-        } else { ("outputted", "answer") };
+            ("answer", "output")
+        } else { ("output", "answer") };
 
         let tp = format!(
-            "{} file has more lines than the {} file", thing.0, thing.1
+            "{} has more lines than the {}", thing.0, thing.1
         ).red();
         writeln(&tp, &mut out);
     }

@@ -13,10 +13,10 @@ pub(crate) struct Cli {
 
     /// correct code (required only if given generator)
     #[structopt(long = "ans", short = "a", requires("gen"))]
-    pub(crate) ans: PathBuf,
+    pub(crate) ans: Option<PathBuf>,
 
-    #[structopt(long = "gen-amt", default_value = "20", requires("gen"))]
-    pub(crate) test_amt: u32,
+    #[structopt(long = "gen-amt", requires("gen"))]
+    pub(crate) test_amt: Option<u32>,
 
     /// file or directory to use for input
     #[structopt(long = "fin", conflicts_with("gen"), required_unless("gen"))]
@@ -25,6 +25,9 @@ pub(crate) struct Cli {
     /// file or directory that contains the actual outputs
     #[structopt(long = "fout", conflicts_with("ans"), requires("fin"))]
     pub(crate) fout: Option<PathBuf>,  // no clue why i have to Option<> this
+
+    #[structopt(long = "check", short = "c", conflicts_with("fout"), conflicts_with("ans"))]
+    pub(crate) checker: Option<PathBuf>,
 
     /// note: won't be used if `fin` & `fout` are normal files
     /// the format string for the input files
