@@ -1,6 +1,5 @@
 use std::io::Write;
 use std::path::PathBuf;
-use std::process;
 
 use structopt::StructOpt;
 use anyhow::{Context, Error, Result};
@@ -110,7 +109,7 @@ fn validate(
             Err(e) => Err(e)
         };
     }
-    Ok(true) // PISS OFF RUST, YOU MEMORY-SAFE PIECE OF GARBAGE
+    Ok(true)  // PISS OFF RUST, YOU MEMORY-SAFE PIECE OF GARBAGE
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

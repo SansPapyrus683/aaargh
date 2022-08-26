@@ -7,14 +7,14 @@ made for stress testing programs for when you can't find that goddamned test cas
 
 the others aren't here, it's just me, KS writing this  
 
-### support
+## support
 
 so far releases only contain executables for windows & linux  
 specifically, binaries built with `x86_64-pc-windows-msvc` and `x86_64-unknown-linux-musl`,
 whatever that means  
 mac users are gonna have to build this on their own, frick you tim cook
 
-### usage
+## usage
 
 much of the arguments should be documented [here](src/main.rs), but i'll put some general usage here again
 
@@ -26,11 +26,21 @@ this will compile run the program with `input.txt` redirected into standard inpu
 (console input, whatever you like to call it)
 
 but there's a _whole_ buncha options, i'll go over them
+
+### stuff for test case generation and checking
+
 * `--gen` or `-g`- the generator script that should print random test cases to stdout
   * `--ans` or `-a`- the checker program that outputs the actual answer for each test case
   * `--gen-amt`- how many times do you want to run the generator? (default is 20)
 * `--fin`- file (or directory) to use for input
   * `--fout`- file (or directory) to use for actual output (must be same type as `fin`)
+* `--checker` or `-c`- a checker script (compatible with `gen` and `fin`) for those problems where you have
+                       to construct a graph which follows some forsaken condition
+  * the script is supposed to output `ok` (case-insensitive) if the output is valid, and anything else
+    if it isn't
+
+### stuff that's a bit more optional
+
 * `--fin-fmt` & `--fout-fmt`- if `fin` and `fout` are directories, i'm gonna need a format for what the files
                               in each directory are like
   * the program starts from `1` and stops when it can't find input or output files that match the criteria
