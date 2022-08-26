@@ -79,6 +79,7 @@ fn validate(
     output: &String,
     ans: &Option<String>,
     checker: &Option<PathBuf>,
+    compiled: bool,
     whitespace_matters: bool, str_case: bool,
     mut out: impl Write
 ) -> Result<bool, ExecError> {
@@ -93,7 +94,7 @@ fn validate(
     if let Some(c) = checker {
         let correct = exec::exec(
             &c, output,
-            &RunOptions::None, false
+            &RunOptions::None, compiled
         );
         return match correct {
             Ok(o) => {
@@ -126,20 +127,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         for t in 1..=args.test_amt.unwrap_or(20) {
             let tc = get_output(
                 &gen_code, "",
-                &RunOptions::None, t != 1,
+                &RunOptions::None, t > 1,
                 &None, &None
             )?.0.stdout;  // discard stderr
 
             let correct = get_output(
                 &args.ans.as_ref().unwrap(), &tc,
-                &run_options, t != 1,
+                &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?.0.stdout;
 
             println!("{}", format!("TEST CASE {}", t).cyan().bold());
             let (normal, file) = get_output(
                 &args.code, &tc,
-                &run_options, t != 1,
+                &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?;
             prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
@@ -151,6 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             };
             let diff_res = validate(
                 &ans, &Some(correct), &None,
+                t > 1,
                 args.whitespace_matters, args.str_case,
                 &mut std::io::stdout()
             ).with_context(|| "checking error")?;
@@ -186,7 +188,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &ans,
             &if let Some(f) = args.fout { Some(check_content(&f)?) } else { None },
             &args.checker,
-            args.whitespace_matters, args.str_case,
+            false, args.whitespace_matters, args.str_case,
             &mut std::io::stdout()
         ).with_context(|| "checking error")?;
         if !diff_res {
@@ -234,10 +236,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Some(_) => file
             };
             let correct = validate(
-                &ans,
-                &fout,
-                &args.checker,
-                args.whitespace_matters, args.str_case, &mut std::io::stdout()
+                &ans, &fout, &args.checker,
+                t > 1,
+                args.whitespace_matters, args.str_case,
+                &mut std::io::stdout()
             ).with_context(|| "checking error")?;
             if correct {
                 println!("{}", "hooray, test case correct!".bright_green());

@@ -93,6 +93,7 @@ pub(crate) fn exec(
             cmd.arg(&file);
         }
         Lang::Cpp => {
+            let name = code.file_stem().unwrap().to_str().unwrap().trim();
             if !compiled {
                 let compiler = "g++";
                 if !cmd_exists(compiler) {
@@ -100,6 +101,7 @@ pub(crate) fn exec(
                 }
                 let compile_res = Command::new(compiler)
                     .arg(&file)
+                    .arg("-o").arg(name)
                     .args(&options)
                     .spawn().expect("C++ OH NO")
                     .wait().expect("bruh...");
@@ -109,10 +111,9 @@ pub(crate) fn exec(
             }
 
             let cmd_name = match std::env::consts::OS {
-                "linux" => "./a.out",
-                "mac" => "./a.out",
-                "windows" => "./a",
-                _ => ""
+                "linux" | "mac" => format!("./{}.out", name),
+                "windows" => format!("./{}", name),
+                _ => "".to_string()
             };
 
             cmd = Command::new(cmd_name);
