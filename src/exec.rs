@@ -1,10 +1,8 @@
 use std::path::{PathBuf};
-use std::ffi::{OsStr};
 use std::io::{ErrorKind, Write};
 use std::process::{Command, Stdio};
-use std::time::Instant;
 
-use strum::{IntoEnumIterator};
+use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
 
 use crate::RunOptions;
@@ -127,6 +125,8 @@ pub(crate) fn exec(
         .spawn()
         .expect("something terribly wrong has happened");
 
+    let start = std::time::Instant::now();
+
     let mut writer = std::io::BufWriter::new(cmd.stdin.take().unwrap());
     // https://stackoverflow.com/questions/21615188
     for l in input.lines() {
@@ -137,7 +137,6 @@ pub(crate) fn exec(
     }
     writer.flush().expect("god i'm so tired");
 
-    let start = Instant::now();
     let output = cmd.wait_with_output().expect("bruh...");
     let time = start.elapsed();
     let stdout = String::from_utf8(output.stdout).unwrap();
@@ -173,7 +172,7 @@ fn cmd_exists(cmd: &str) -> bool {
 
 // general utility methods
 pub(crate) fn path_ext(path: &PathBuf) -> Option<&str> {
-    path.extension().and_then(OsStr::to_str)
+    path.extension().and_then(std::ffi::OsStr::to_str)
 }
 
 pub(crate) fn path_str(path: &PathBuf) -> String {
