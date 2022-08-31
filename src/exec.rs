@@ -108,13 +108,7 @@ pub(crate) fn exec(
                 }
             }
 
-            let cmd_name = match std::env::consts::OS {
-                "linux" | "mac" => format!("./{}.out", name),
-                "windows" => format!("./{}", name),
-                _ => "".to_string()
-            };
-
-            cmd = Command::new(cmd_name);
+            cmd = Command::new(format!("./{}", name));
         }
     };
 
