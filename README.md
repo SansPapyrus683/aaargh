@@ -25,6 +25,13 @@ aargh prog.cpp --fin input.txt --fout ans.txt
 this will compile run the program with `input.txt` redirected into standard input
 (console input, whatever you like to call it)
 
+the first argument is always going to be a code file  
+rn 4 formats for runnable files are supported:
+* python
+* java
+* cpp
+* executables
+
 but there's a _whole_ buncha options, i'll go over them
 
 ### stuff for test case generation and checking

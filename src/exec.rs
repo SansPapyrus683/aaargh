@@ -50,7 +50,7 @@ pub(crate) fn exec(
     let lang = file_lang(code);
     if lang.is_none() && !is_exe {
         let ext = path_ext(code).unwrap_or("");
-        return Err(ExecError::BadLang(BadLangError { ext: ext.to_string() }));
+        return Err(ExecError::bad_lang(ext));
     }
 
     let options = match options {
