@@ -4,7 +4,6 @@ use std::process::{Command, Stdio};
 
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
-use is_executable::IsExecutable;
 
 use crate::RunOptions;
 use crate::errors::*;
@@ -46,77 +45,73 @@ pub(crate) fn exec(
         return Err(ExecError::path_not_found(code.clone()));
     }
 
-    let is_exe = code.is_executable();
     let lang = file_lang(code);
-    if lang.is_none() && !is_exe {
+    if lang.is_none() {
         let ext = path_ext(code).unwrap_or("");
         return Err(ExecError::bad_lang(ext));
     }
 
+    let empty = Vec::new();  // this is fricking stupid
     let options = match options {
-        RunOptions::Some(a) => a.clone(),
-        RunOptions::None => Vec::new()
+        RunOptions::Some(a) => a,
+        RunOptions::None => &empty
     };
 
     // note to self: https://doc.rust-lang.org/std/time/struct.Instant.html
     let file = path_str(code);
     let mut cmd;
-    if is_exe {
-        cmd = Command::new(format!("./{}", code.to_str().unwrap()));
-    } else {
-        match lang.unwrap() {
-            Lang::Python => {
-                let cmds = vec!["py", "python", "python3"];
-                let cmd_use = cmds.iter()
-                    .find(|c| cmd_exists(c))
-                    .ok_or(ExecError::lang_not_found(Lang::Python))?;
+    match lang.unwrap() {
+        Lang::Python => {
+            let cmds = vec!["py", "python", "python3"];
+            let cmd_use = cmds.iter()
+                .find(|c| cmd_exists(c))
+                .ok_or(ExecError::lang_not_found(Lang::Python))?;
 
-                cmd = Command::new(cmd_use);
-                cmd.arg(&file).args(&options);
-            }
-            Lang::Java => {
-                let runner = "java";
-                if !compiled {
-                    let compiler = "javac";
-                    if !cmd_exists(runner) || !cmd_exists(compiler) {
-                        return Err(ExecError::lang_not_found(Lang::Java));
-                    }
-                    let compile_res = Command::new(compiler)
-                        .arg(&file)
-                        .args(&options)
-                        .spawn().expect("JAVA OH NO")
-                        // make sure compilation finishes first
-                        .wait().expect("bruh...");
-                    if !compile_res.success() {
-                        return Err(ExecError::runtime_error("java compilation error"));
-                    }
+            cmd = Command::new(cmd_use);
+            cmd.arg(&file).args(options);
+        }
+        Lang::Java => {
+            let runner = "java";
+            if !compiled {
+                let compiler = "javac";
+                if !cmd_exists(runner) || !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Java));
                 }
-
-                cmd = Command::new(runner);
-                cmd.arg(&file);
-            }
-            Lang::Cpp => {
-                let name = code.file_stem().unwrap().to_str().unwrap().trim();
-                if !compiled {
-                    let compiler = "g++";
-                    if !cmd_exists(compiler) {
-                        return Err(ExecError::lang_not_found(Lang::Cpp));
-                    }
-                    let compile_res = Command::new(compiler)
-                        .arg(&file)
-                        .arg("-o").arg(name)
-                        .args(&options)
-                        .spawn().expect("C++ OH NO")
-                        .wait().expect("bruh...");
-                    if !compile_res.success() {
-                        return Err(ExecError::runtime_error("cpp compilation error"));
-                    }
+                let compile_res = Command::new(compiler)
+                    .arg(&file)
+                    .args(options)
+                    .spawn().expect("JAVA OH NO")
+                    // make sure compilation finishes first
+                    .wait().expect("bruh...");
+                if !compile_res.success() {
+                    return Err(ExecError::runtime_error("java compilation error"));
                 }
-
-                cmd = Command::new(format!("./{}", name));
             }
-        };
-    }
+
+            cmd = Command::new(runner);
+            cmd.arg(&file);
+        }
+        Lang::Cpp => {
+            let name = code.file_stem().unwrap().to_str().unwrap().trim();
+            if !compiled {
+                let compiler = "g++";
+                if !cmd_exists(compiler) {
+                    return Err(ExecError::lang_not_found(Lang::Cpp));
+                }
+                let compile_res = Command::new(compiler)
+                    .arg(&file)
+                    .arg("-o").arg(name)
+                    .args(options)
+                    .spawn().expect("C++ OH NO")
+                    .wait().expect("bruh...");
+                if !compile_res.success() {
+                    return Err(ExecError::runtime_error("cpp compilation error"));
+                }
+            }
+
+            cmd = Command::new(format!("./{}", name));
+        }
+    };
 
     let mut cmd = cmd
         .stdin(Stdio::piped())
