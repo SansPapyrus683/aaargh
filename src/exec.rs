@@ -19,6 +19,20 @@ impl Lang {
             Lang::Cpp => vec!["cpp", "cc", "cxx", "c++"]
         }
     }
+
+    fn file_lang(file: &PathBuf) -> Option<Lang> {
+        let ext = path_ext(file);
+        if ext.is_none() {
+            return None;
+        }
+        let ext = ext.unwrap();
+        for l in Lang::iter() {
+            if l.valid_ext().contains(&ext) {
+                return Some(l);
+            }
+        }
+        None
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -45,7 +59,7 @@ pub(crate) fn exec(
         return Err(ExecError::path_not_found(code.clone()));
     }
 
-    let lang = file_lang(code);
+    let lang = Lang::file_lang(code);
     if lang.is_none() {
         let ext = path_ext(code).unwrap_or("");
         return Err(ExecError::bad_lang(ext));
@@ -140,20 +154,6 @@ pub(crate) fn exec(
         return Err(ExecError::runtime_error(&stderr));
     }
     Ok(ProgRes { stdout, stderr, time: time.as_secs_f64() })
-}
-
-fn file_lang(file: &PathBuf) -> Option<Lang> {
-    let ext = path_ext(file);
-    if ext.is_none() {
-        return None;
-    }
-    let ext = ext.unwrap();
-    for l in Lang::iter() {
-        if l.valid_ext().contains(&ext) {
-            return Some(l);
-        }
-    }
-    None
 }
 
 fn cmd_exists(cmd: &str) -> bool {
