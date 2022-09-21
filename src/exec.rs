@@ -4,6 +4,7 @@ use std::process::{Command, Stdio};
 
 use strum::IntoEnumIterator;
 use strum_macros::{EnumIter, IntoStaticStr};
+use is_executable::IsExecutable;
 
 use crate::RunOptions;
 use crate::errors::*;
@@ -60,10 +61,6 @@ pub(crate) fn exec(
     }
 
     let lang = Lang::file_lang(code);
-    if lang.is_none() {
-        let ext = path_ext(code).unwrap_or("");
-        return Err(ExecError::bad_lang(ext));
-    }
 
     let empty = Vec::new();  // this is fricking stupid
     let options = match options {
@@ -74,8 +71,16 @@ pub(crate) fn exec(
     // note to self: https://doc.rust-lang.org/std/time/struct.Instant.html
     let file = path_str(code);
     let mut cmd;
-    match lang.unwrap() {
-        Lang::Python => {
+    match lang {
+        None => {
+            if !code.is_executable() {
+                let ext = path_ext(code).unwrap_or("");
+                return Err(ExecError::bad_lang(ext));
+            }
+            cmd = Command::new(format!("./{}", path_str(code)));
+            cmd.args(options);
+        }
+        Some(Lang::Python) => {
             let cmds = vec!["py", "python", "python3"];
             let cmd_use = cmds.iter()
                 .find(|c| cmd_exists(c))
@@ -84,7 +89,7 @@ pub(crate) fn exec(
             cmd = Command::new(cmd_use);
             cmd.arg(&file).args(options);
         }
-        Lang::Java => {
+        Some(Lang::Java) => {
             let runner = "java";
             if !compiled {
                 let compiler = "javac";
@@ -105,7 +110,7 @@ pub(crate) fn exec(
             cmd = Command::new(runner);
             cmd.arg(&file);
         }
-        Lang::Cpp => {
+        Some(Lang::Cpp) => {
             let name = code.file_stem().unwrap().to_str().unwrap().trim();
             if !compiled {
                 let compiler = "g++";
