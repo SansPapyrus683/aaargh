@@ -12,7 +12,7 @@ fn writeln(s: &(impl Display + ?Sized), mut out: impl std::io::Write) {
 pub(crate) fn diff_lines<'a>(
     given: impl IntoIterator<Item = &'a str>,
     actual: impl IntoIterator<Item = &'a str>,
-    whitespace_matters: bool, str_case: bool,
+    whitespace_matters: bool, str_case: bool, one_abort: bool,
     mut out: impl std::io::Write
 ) -> bool {
     let mut g_vec: Vec<&str> = given.into_iter().collect();
@@ -122,6 +122,9 @@ pub(crate) fn diff_lines<'a>(
             (_, _) => unreachable!("oh no")
         };
         writeln(&diff, &mut out);
+        if one_abort {
+            break;
+        }
     }
     different
 }

@@ -58,6 +58,11 @@ pub(crate) struct Cli {
     #[structopt(long = "str-case")]
     pub(crate) str_case: bool,
 
+    /// this makes the output checker stop as soon as it detects a discrepancy
+    /// (i.e. it won't go any further because it's already wrong)
+    #[structopt(long = "one-abort")]
+    pub(crate) one_abort: bool,
+
     /// should the programs output the stdout w/ the diff results?
     #[structopt(long = "prog-stdout")]
     pub(crate) prog_stdout: bool,

@@ -80,14 +80,15 @@ fn validate(
     ans: &Option<String>,
     checker: &Option<PathBuf>,
     compiled: bool,
-    whitespace_matters: bool, str_case: bool,
+    whitespace_matters: bool, str_case: bool, one_abort: bool,
     mut out: impl Write
 ) -> Result<bool, ExecError> {
     if let Some(a) = ans {
         let diff_res = diff::diff_lines(
             output.lines().into_iter(),
             a.lines().into_iter(),
-            whitespace_matters, str_case, out
+            whitespace_matters, str_case, one_abort,
+            out
         );
         return Ok(diff_res);
     }
@@ -153,7 +154,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let diff_res = validate(
                 &ans, &Some(correct), &None,
                 t > 1,
-                args.whitespace_matters, args.str_case,
+                args.whitespace_matters, args.str_case, args.one_abort,
                 &mut std::io::stdout()
             ).with_context(|| "checking error")?;
             if diff_res {
@@ -188,7 +189,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &ans,
             &if let Some(f) = args.fout { Some(check_content(&f)?) } else { None },
             &args.checker,
-            false, args.whitespace_matters, args.str_case,
+            false, args.whitespace_matters, args.str_case, args.one_abort,
             &mut std::io::stdout()
         ).with_context(|| "checking error")?;
         if !diff_res {
@@ -238,7 +239,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let correct = validate(
                 &ans, &fout, &args.checker,
                 t > 1,
-                args.whitespace_matters, args.str_case,
+                args.whitespace_matters, args.str_case, args.one_abort,
                 &mut std::io::stdout()
             ).with_context(|| "checking error")?;
             if correct {
