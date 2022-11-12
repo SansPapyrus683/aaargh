@@ -123,6 +123,7 @@ pub(crate) fn diff_lines<'a>(
         };
         writeln(&diff, &mut out);
         if one_abort {
+            writeln(&"stopping after single diff (one-abort)".red(), &mut out);
             break;
         }
     }

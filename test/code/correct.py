@@ -1,2 +1,4 @@
 size = int(input())
-print(sum(int(i) for i in input().split()))
+arr = [int(i) for i in input().split()]
+print(sum(arr))
+print(min(arr))
