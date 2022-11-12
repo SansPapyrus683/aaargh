@@ -62,6 +62,7 @@ but there's a _whole_ buncha options, i'll go over them
 * `--whitespace-fmt`- some graders just care about the numbers, not the spacing between them. if your
                       grader isn't one of these, put this option here
 * `--str-case`- when comparing strings, should case matter? i.e. should `abc` count as being different from `AbC`?
+* `--one-abort`- as soon as a discrepancy is detected, should the grader stop? useful for long output files
 * `--prog-stdout` & `--prog-stderr`
 
 and sometimes you wanna pass in special commands to the compiler as well  
