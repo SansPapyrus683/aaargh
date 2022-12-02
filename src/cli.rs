@@ -15,7 +15,7 @@ pub(crate) struct Cli {
     #[structopt(long = "ans", short = "a", requires("gen"))]
     pub(crate) ans: Option<PathBuf>,
 
-    #[structopt(long = "gen-amt", requires("gen"))]
+    #[structopt(long = "gen-amt", short="t", requires("gen"))]
     pub(crate) test_amt: Option<u32>,
 
     /// file or directory to use for input
