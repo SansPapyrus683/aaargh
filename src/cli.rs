@@ -63,11 +63,11 @@ pub(crate) struct Cli {
     #[structopt(long = "one-abort")]
     pub(crate) one_abort: bool,
 
-    /// should the programs output the stdout w/ the diff results?
+    /// should the programs output the stdout of the program w/ the diff results?
     #[structopt(long = "prog-stdout")]
     pub(crate) prog_stdout: bool,
 
-    /// should the programs output the stderr w/ diff the results?
+    /// should the programs output the stderr of the program w/ the diff results?
     #[structopt(long = "prog-stderr")]
     pub(crate) prog_stderr: bool,
 

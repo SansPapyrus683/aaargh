@@ -125,7 +125,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.gen.is_some() {
         let gen_code = args.gen.unwrap();
-        for t in 1..=args.test_amt.unwrap_or(20) {
+        for t in 1..=args.test_amt.unwrap_or(50) {
             let tc = get_output(
                 &gen_code, "",
                 &RunOptions::None, t > 1,
