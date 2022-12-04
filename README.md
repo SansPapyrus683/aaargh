@@ -39,6 +39,8 @@ but there's a _whole_ buncha options, i'll go over them
 * `--gen` or `-g`- the generator script that should print random test cases to stdout
   * `--ans` or `-a`- the checker program that outputs the actual answer for each test case
   * `--gen-amt` or `t`- how many times do you want to run the generator? (default is 50)
+  * `--gen-forever` or `f`- keeps on generating test cases until the end of time
+                            (well it actually just generates 2^32 test cases, but if that doesn't work idk what will)
 * `--fin`- file (or directory) to use for input
   * `--fout`- file (or directory) to use for actual output (must be same type as `fin`)
 * `--checker` or `-c`- a checker script (compatible with `gen` and `fin`) for those problems where you have

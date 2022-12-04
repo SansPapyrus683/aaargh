@@ -125,7 +125,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     if args.gen.is_some() {
         let gen_code = args.gen.unwrap();
-        for t in 1..=args.test_amt.unwrap_or(50) {
+        let default = if args.gen_forever { u32::MAX } else { 50 };
+        for t in 1..=args.gen_amt.unwrap_or(default) {
             let tc = get_output(
                 &gen_code, "",
                 &RunOptions::None, t > 1,

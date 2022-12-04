@@ -152,7 +152,6 @@ pub(crate) fn exec(
     writer.write_all(lines.as_bytes()).expect("INPUT OH NO");
 
     writer.flush().expect("god i'm so tired");
-    println!("ok");
     let output = cmd.wait_with_output().expect("bruh...");
     let time = start.elapsed();
     let stdout = String::from_utf8(output.stdout).unwrap();

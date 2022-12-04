@@ -15,8 +15,13 @@ pub(crate) struct Cli {
     #[structopt(long = "ans", short = "a", requires("gen"))]
     pub(crate) ans: Option<PathBuf>,
 
+    /// the number of test cases to generate
     #[structopt(long = "gen-amt", short="t", requires("gen"))]
-    pub(crate) test_amt: Option<u32>,
+    pub(crate) gen_amt: Option<u32>,
+
+    /// if this is passed, aaargh'll keep on running (at least from your perspective)
+    #[structopt(long = "gen-forever", short="f", requires("gen"), conflicts_with("gen-amt"))]
+    pub(crate) gen_forever: bool,
 
     /// file or directory to use for input
     #[structopt(long = "fin", conflicts_with("gen"), required_unless("gen"))]
