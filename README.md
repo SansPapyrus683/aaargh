@@ -65,7 +65,8 @@ but there's a _whole_ buncha options, i'll go over them
                       grader isn't one of these, put this option here
 * `--str-case`- when comparing strings, should case matter? i.e. should `abc` count as being different from `AbC`?
 * `--one-abort`- as soon as a discrepancy is detected, should the grader stop? useful for long output files
-* `--prog-stdout` & `--prog-stderr`
+* `--silence`- doesn't produce any output like "TEST CASE x" or whatever, just tells you if you fricked smth up
+* `--prog-stdout` & `--prog-stderr`- yeah, it should be obvious what these two things do
 
 and sometimes you wanna pass in special commands to the compiler as well  
 that's completely fine, just put a `--` at the end of your command, then type in your arguments like so:
