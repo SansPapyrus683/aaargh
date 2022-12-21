@@ -68,6 +68,11 @@ pub(crate) struct Cli {
     #[structopt(long = "one-abort")]
     pub(crate) one_abort: bool,
 
+    /// won't bother you with all that "test case #" test, only makes a peep
+    /// when you get something wrong, which is probably what you want
+    #[structopt(long = "silence", short = "s")]
+    pub(crate) silence: bool,
+
     /// should the programs output the stdout of the program w/ the diff results?
     #[structopt(long = "prog-stdout")]
     pub(crate) prog_stdout: bool,

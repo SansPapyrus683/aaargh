@@ -3,7 +3,7 @@ use std::iter::zip;
 use colored::Colorize;
 use regex::Regex;
 
-fn writeln(s: &(impl Display + ?Sized), mut out: impl std::io::Write) {
+fn writeln(s: &impl Display, mut out: impl std::io::Write) {
     if let Err(e) = writeln!(out, "{}", s) {
         eprintln!("wtf why can't i write: {}", e);
     }

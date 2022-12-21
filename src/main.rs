@@ -114,6 +114,12 @@ fn validate(
     Ok(true)  // PISS OFF RUST, YOU MEMORY-SAFE PIECE OF GARBAGE
 }
 
+fn dumb_write(silence: &bool, s: &impl std::fmt::Display, mut out: impl Write) {
+    if !silence {
+        writeln!(out, "{}", s).expect("you're adopted, rust.");
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Cli = Cli::from_args();
     let run_options = match args.run_options {
@@ -123,6 +129,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     path_test(&args.code)?;
 
+    let silence = &args.silence;
+    let stdout = &mut std::io::stdout();
     if args.gen.is_some() {
         let gen_code = args.gen.unwrap();
         let default = if args.gen_forever { u32::MAX } else { 50 };
@@ -139,14 +147,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &args.prog_fin, &args.prog_fout
             )?.0.stdout;
 
-            println!("{}", format!("TEST CASE {}", t).cyan().bold());
+            dumb_write(silence, &format!("TEST CASE {}", t).cyan().bold(), &mut *stdout);
             let (normal, file) = get_output(
                 &args.code, &tc,
                 &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?;
-            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
-            println!("{}", format!("execution time: {} s", normal.time).cyan());
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
+            dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
 
             let ans = match args.prog_fout {
                 None => normal.stdout,
@@ -156,14 +164,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &Some(correct), &None,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut std::io::stdout()
+                &mut *stdout
             ).with_context(|| "checking error")?;
             if diff_res {
                 println!("{}\n{}", "test case failed:".red(), tc.red());
                 break;
             }
 
-            println!("{}", "hooray, test case correct!".bright_green());
+            dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
         }
         return Ok(());
     }
@@ -179,8 +187,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &args.prog_fin, &args.prog_fout
         )?;
 
-        prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
-        println!("{}", format!("execution time: {} s", normal.time).cyan());
+        prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
+        dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
 
         let ans = match args.prog_fout {
             None => normal.stdout,
@@ -191,10 +199,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &if let Some(f) = args.fout { Some(check_content(&f)?) } else { None },
             &args.checker,
             false, args.whitespace_matters, args.str_case, args.one_abort,
-            &mut std::io::stdout()
+            &mut *stdout
         ).with_context(|| "checking error")?;
         if !diff_res {
-            println!("{}", "hooray, test case correct!".bright_green());
+            dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
         }
     } else {
         let default = "{}.in".to_string();
@@ -216,14 +224,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
 
-            println!("{}", format!("TEST CASE {}", t).cyan().bold());
+            dumb_write(silence, &format!("TEST CASE {}", t).cyan().bold(), &mut *stdout);
             let (normal, file) = get_output(
                 &args.code, &check_content(&fin)?,
                 &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?;
-            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
-            println!("{}", format!("execution time: {} s", normal.time).cyan());
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
+            dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
 
             let mut fout = None;
             if let Some(f) = &args.fout {
@@ -241,10 +249,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &fout, &args.checker,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut std::io::stdout()
+                &mut *stdout
             ).with_context(|| "checking error")?;
             if correct {
-                println!("{}", "hooray, test case correct!".bright_green());
+                dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
             }
 
             t += 1;
