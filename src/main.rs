@@ -114,9 +114,20 @@ fn validate(
     Ok(true)  // PISS OFF RUST, YOU MEMORY-SAFE PIECE OF GARBAGE
 }
 
-fn dumb_write(silence: &bool, s: &impl std::fmt::Display, mut out: impl Write) {
-    if !silence {
-        writeln!(out, "{}", s).expect("you're adopted, rust.");
+struct DumbWriter {
+    silence: bool,
+    out: std::io::Stdout
+}
+
+impl DumbWriter {
+    fn dumb_write(&mut self, s: &impl std::fmt::Display) {
+        if !self.silence {
+            writeln!(self.out, "{}", s).expect("you're adopted, rust.");
+        }
+    }
+
+    fn write(&mut self, s: &impl std::fmt::Display) {
+        writeln!(self.out, "{}", s).expect("you're adopted, rust.");
     }
 }
 
@@ -129,11 +140,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     path_test(&args.code)?;
 
-    let silence = &args.silence;
-    let stdout = &mut std::io::stdout();
+    let mut writer = DumbWriter { silence: args.silence, out: std::io::stdout() };
     if args.gen.is_some() {
         let gen_code = args.gen.unwrap();
         let default = if args.gen_forever { u32::MAX } else { 50 };
+        let mut found_bad = false;
         for t in 1..=args.gen_amt.unwrap_or(default) {
             let tc = get_output(
                 &gen_code, "",
@@ -147,14 +158,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &args.prog_fin, &args.prog_fout
             )?.0.stdout;
 
-            dumb_write(silence, &format!("TEST CASE {}", t).cyan().bold(), &mut *stdout);
+            writer.dumb_write(&format!("TEST CASE {}", t).cyan().bold());
             let (normal, file) = get_output(
                 &args.code, &tc,
                 &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?;
-            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
-            dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+            writer.dumb_write(&format!("exec time: {} s", normal.time).cyan());
 
             let ans = match args.prog_fout {
                 None => normal.stdout,
@@ -164,14 +175,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &Some(correct), &None,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut *stdout
+                &mut std::io::stdout()
             ).with_context(|| "checking error")?;
             if diff_res {
                 println!("{}\n{}", "test case failed:".red(), tc.red());
+                found_bad = true;
                 break;
             }
 
-            dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
+            writer.dumb_write(&"hooray, test case correct!".bright_green());
+        }
+        if !found_bad {
+            writer.write(&"all correct! (could be good or bad, it depends.)".yellow());
         }
         return Ok(());
     }
@@ -187,8 +202,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &args.prog_fin, &args.prog_fout
         )?;
 
-        prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
-        dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
+        prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+        writer.dumb_write(&format!("exec time: {} s", normal.time).cyan());
 
         let ans = match args.prog_fout {
             None => normal.stdout,
@@ -199,10 +214,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &if let Some(f) = args.fout { Some(check_content(&f)?) } else { None },
             &args.checker,
             false, args.whitespace_matters, args.str_case, args.one_abort,
-            &mut *stdout
+            &mut std::io::stdout()
         ).with_context(|| "checking error")?;
         if !diff_res {
-            dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
+            writer.dumb_write(&"hooray, test case correct!".bright_green());
         }
     } else {
         let default = "{}.in".to_string();
@@ -214,6 +229,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             && fout_fmt.matches(FMT_TOKEN).count() == 0;
 
         let mut t = 1;
+        let mut found_bad = true;
         loop {
             let fin_name = fin_fmt.replace(FMT_TOKEN, &t.to_string());
 
@@ -224,14 +240,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 break;
             }
 
-            dumb_write(silence, &format!("TEST CASE {}", t).cyan().bold(), &mut *stdout);
+            writer.dumb_write(&format!("TEST CASE {}", t).cyan().bold());
             let (normal, file) = get_output(
                 &args.code, &check_content(&fin)?,
                 &run_options, t > 1,
                 &args.prog_fin, &args.prog_fout
             )?;
-            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut *stdout);
-            dumb_write(silence, &format!("exec time: {} s", normal.time).cyan(), &mut *stdout);
+            prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
+            writer.dumb_write(&format!("exec time: {} s", normal.time).cyan());
 
             let mut fout = None;
             if let Some(f) = &args.fout {
@@ -249,16 +265,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &fout, &args.checker,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut *stdout
+                &mut std::io::stdout()
             ).with_context(|| "checking error")?;
             if correct {
-                dumb_write(silence, &"hooray, test case correct!".bright_green(), &mut *stdout);
+                writer.dumb_write(&"hooray, test case correct!".bright_green());
+            } else {
+                found_bad = true;
             }
 
             t += 1;
             if once {
                 break;
             }
+        }
+        if !found_bad {
+            writer.write(&"all correct! (could be good or bad, it depends.)".yellow());
         }
     }
 
