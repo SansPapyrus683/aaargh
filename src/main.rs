@@ -18,7 +18,7 @@ const FMT_TOKEN: &str = "{}";
 
 fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
     if path.exists() {
-        return Ok(())
+        return Ok(());
     }
     Err(errors::PathNotFound { path: path.clone() })
 }
@@ -26,7 +26,7 @@ fn path_test(path: &PathBuf) -> Result<(), errors::PathNotFound> {
 fn get_output(
     code: &PathBuf, input: &str,
     options: &RunOptions, compiled: bool,
-    fin: &Option<PathBuf>, fout: &Option<PathBuf>
+    fin: &Option<PathBuf>, fout: &Option<PathBuf>,
 ) -> Result<(ProgRes, String), Error> {
     match fin {
         None => {}
@@ -65,7 +65,7 @@ fn get_output(
 fn prog_res(
     res: &ProgRes,
     stdout: bool, stderr: bool,
-    mut out: impl Write
+    mut out: impl Write,
 ) {
     if stderr {
         writeln!(out, "stderr output:\n{}", res.stderr.blue()).expect("oh no");
@@ -81,21 +81,21 @@ fn validate(
     checker: &Option<PathBuf>,
     compiled: bool,
     whitespace_matters: bool, str_case: bool, one_abort: bool,
-    mut out: impl Write
+    mut out: impl Write,
 ) -> Result<bool, ExecError> {
     if let Some(a) = ans {
         let diff_res = diff::diff_lines(
             output.lines().into_iter(),
             a.lines().into_iter(),
             whitespace_matters, str_case, one_abort,
-            out
+            out,
         );
         return Ok(diff_res);
     }
     if let Some(c) = checker {
         let correct = exec::exec(
             &c, output,
-            &RunOptions::None, compiled
+            &RunOptions::None, compiled,
         );
         return match correct {
             Ok(o) => {
@@ -107,7 +107,7 @@ fn validate(
                     format!("incorrect output- checker message:\n{}", o.stdout).red()
                 ).expect("oh no");
                 Ok(false)
-            },
+            }
             Err(e) => Err(e)
         };
     }
@@ -116,7 +116,7 @@ fn validate(
 
 struct DumbWriter {
     silence: bool,
-    out: std::io::Stdout
+    out: std::io::Stdout,
 }
 
 impl DumbWriter {
@@ -133,10 +133,7 @@ impl DumbWriter {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Cli = Cli::from_args();
-    let run_options = match args.run_options {
-        None => RunOptions::None,
-        Some(args) => args
-    };
+    let run_options = args.run_options.unwrap_or_else(|| RunOptions::None);
 
     path_test(&args.code)?;
 
@@ -149,20 +146,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let tc = get_output(
                 &gen_code, "",
                 &RunOptions::None, t > 1,
-                &None, &None
+                &None, &None,
             )?.0.stdout;  // discard stderr
 
             let correct = get_output(
                 &args.ans.as_ref().unwrap(), &tc,
                 &run_options, t > 1,
-                &args.prog_fin, &args.prog_fout
+                &args.prog_fin, &args.prog_fout,
             )?.0.stdout;
 
             writer.dumb_write(&format!("TEST CASE {}", t).cyan().bold());
             let (normal, file) = get_output(
                 &args.code, &tc,
                 &run_options, t > 1,
-                &args.prog_fin, &args.prog_fout
+                &args.prog_fin, &args.prog_fout,
             )?;
             prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
             writer.dumb_write(&format!("exec time: {} s", normal.time).cyan());
@@ -175,7 +172,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &Some(correct), &None,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut std::io::stdout()
+                &mut std::io::stdout(),
             ).with_context(|| "checking error")?;
             if diff_res {
                 println!("{}\n{}", "test case failed:".red(), tc.red());
@@ -199,7 +196,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let (normal, file) = get_output(
             &args.code, &check_content(&args_fin).unwrap(),
             &run_options, false,
-            &args.prog_fin, &args.prog_fout
+            &args.prog_fin, &args.prog_fout,
         )?;
 
         prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
@@ -214,7 +211,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &if let Some(f) = args.fout { Some(check_content(&f)?) } else { None },
             &args.checker,
             false, args.whitespace_matters, args.str_case, args.one_abort,
-            &mut std::io::stdout()
+            &mut std::io::stdout(),
         ).with_context(|| "checking error")?;
         if !diff_res {
             writer.dumb_write(&"hooray, test case correct!".bright_green());
@@ -244,7 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let (normal, file) = get_output(
                 &args.code, &check_content(&fin)?,
                 &run_options, t > 1,
-                &args.prog_fin, &args.prog_fout
+                &args.prog_fin, &args.prog_fout,
             )?;
             prog_res(&normal, args.prog_stdout, args.prog_stderr, &mut std::io::stdout());
             writer.dumb_write(&format!("exec time: {} s", normal.time).cyan());
@@ -265,7 +262,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 &ans, &fout, &args.checker,
                 t > 1,
                 args.whitespace_matters, args.str_case, args.one_abort,
-                &mut std::io::stdout()
+                &mut std::io::stdout(),
             ).with_context(|| "checking error")?;
             if correct {
                 writer.dumb_write(&"hooray, test case correct!".bright_green());

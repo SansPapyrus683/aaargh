@@ -167,7 +167,7 @@ fn cmd_exists(cmd: &str) -> bool {
         .arg("--version")
         .stdout(Stdio::piped()).spawn() {
         Ok(_) => true,
-        Err(e) => e.kind() == ErrorKind::NotFound
+        Err(e) => e.kind() != ErrorKind::NotFound
     }
 }
 
